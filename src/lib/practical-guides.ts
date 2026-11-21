@@ -1,3 +1,4 @@
+import { exactMonthlyRevenue, hasAmount } from "./business-context";
 import type { BusinessContext } from "./types";
 
 export type PracticalGuide = {
@@ -71,6 +72,14 @@ export const practicalGuides: Record<string, PracticalGuide> = {
     cost: "No se paga a Indecopi una tasa por registrar el libro. Puede haber costo de impresión o de una solución digital elegida por el negocio; no es una tarifa oficial de Indecopi.",
     sourceId: "indecopi",
   },
+  sanidad: {
+    where: "Municipalidad competente por el lugar de preparación o servicio.",
+    askFor: "Orientación sobre las condiciones sanitarias aplicables a tu modalidad.",
+    prepare: ["Descripción de cómo preparas, conservas y entregas los alimentos", "Información sobre agua, limpieza, ventilación y manejo de residuos"],
+    steps: ["Consulta la NTS N.° 142 y sus modificatorias.", "Pregunta qué revisa la municipalidad en tu modalidad de atención, recojo o reparto."],
+    cost: "Consulta el TUPA municipal si la entidad identifica algún trámite aplicable.",
+    sourceId: "digesa",
+  },
   sector: {
     where: "Primero identifica el código y alcance de tu actividad; después consulta el ministerio, dirección regional u organismo sectorial competente.",
     askFor: "Si tu actividad requiere autorización, registro, colegiatura, certificado u otra habilitación previa para operar.",
@@ -87,35 +96,36 @@ export type TaxPath = { code?: "NRUS" | "RER" | "RMT" | "RG"; title: string; rea
 export function getTaxPath(context: BusinessContext): TaxPath {
   const q = context.questionnaire;
   if (!q) return { title: "Completa el cuestionario para comparar", reason: "Necesitamos conocer tu actividad, ventas, clientes, comprobantes y forma de operar.", checks: ["Responde las preguntas tributarias"], status: "FALTAN_DATOS" };
-  const salesKnown = String(q.P20 || "").startsWith("monto:");
-  const purchasesKnown = String(q.TAX_PURCHASES || "").trim() !== "";
-  const assetsKnown = String(q.TAX_ASSETS || "").trim() !== "";
-  const annualSales = salesKnown ? Number(String(q.P20).slice(6)) * 12 : 0;
+  const monthlySales = exactMonthlyRevenue(q);
+  const salesKnown = monthlySales !== undefined;
+  const purchasesKnown = hasAmount(q, "TAX_PURCHASES");
+  const assetsKnown = hasAmount(q, "TAX_ASSETS");
+  const annualSales = (monthlySales ?? 0) * 12;
   const purchases = purchasesKnown ? Number(q.TAX_PURCHASES) * 12 : 0;
   const assets = assetsKnown ? Number(q.TAX_ASSETS) : 0;
-  const employeesKnown = q.P28 === "No" || (q.P28 === "Sí" && Boolean(String(q.P29 || "").trim()) && Boolean(String(q["P29.1"] || "").trim()));
+  const employeesKnown = q.P28 === "No" || (q.P28 === "Sí" && hasAmount(q, "P29") && hasAmount(q, "P29.1"));
   const employeesPerShift = Number(q["P29.1"] || 0);
   const legalKnown = context.legalPerson !== "aun-no-se";
   const customersKnown = context.customerType !== "aun-no-se";
   const canCheckNrus = legalKnown && customersKnown && salesKnown && purchasesKnown && assetsKnown && employeesKnown && context.activityId && q.P23;
-  const nrusFits = canCheckNrus && context.sectorId !== "turismo" && context.legalPerson === "natural" && context.customerType === "personas" && context.needsInvoices === false && annualSales <= 96000 && purchases <= 96000 && assets <= 70000 && !["carga","agencia","importador","exportador"].includes(context.activityId);
+  const nrusFits = canCheckNrus && context.legalPerson === "natural" && context.customerType === "personas" && context.needsInvoices === false && annualSales <= 96000 && purchases <= 96000 && assets <= 70000 && !context.hasMultipleLocations;
   if (nrusFits) return { code:"NRUS", title:"Primera opción a revisar: Nuevo RUS", reason:"Tus respuestas describen una persona natural que vende a consumidores finales, no requiere factura y está dentro de los límites generales que SUNAT publica. Este régimen puede ser el más sencillo si también cumples sus exclusiones.", checks:["Confirma que el giro no esté excluido y que no tengas más de una unidad de explotación.","SUNAT establece cuota mensual de S/ 20 (categoría 1) o S/ 50 (categoría 2), según ingresos y compras.","Solo permite boletas, tickets y guías; no facturas."], status:"PRESELECCION" };
-  const rerKnown = salesKnown && purchasesKnown && assetsKnown && employeesKnown && legalKnown;
+  const rerKnown = Boolean(context.activityId) && salesKnown && purchasesKnown && assetsKnown && employeesKnown && legalKnown;
   // Do not exclude an entire sector without checking the exact activity against SUNAT's list.
   const rerFits = rerKnown && annualSales <= 525000 && purchases <= 525000 && assets <= 126000 && employeesPerShift <= 10;
-  if (rerFits) return { code:"RER", title:"Primera opción a revisar: Régimen Especial (RER)", reason:"Las ventas y compras que declaraste están bajo los límites publicados y tu escenario no activa una exclusión conocida en esta preselección. El RER permite emitir facturas y boletas, pero hay que confirmar el CIIU exacto antes de elegirlo.", checks:["Límite general: S/ 525,000 anuales en ingresos y compras, hasta S/ 126,000 en activos computables y máximo 10 trabajadores por turno.","Pago mensual de renta: 1.5% de ingresos netos; además IGV de operaciones gravadas, con crédito fiscal si procede.","La actividad exacta puede excluirte. Confírmala con SUNAT antes de acogerte."], status:"PRESELECCION" };
+  if (rerFits && customersKnown && context.needsInvoices !== null) return { code:"RER", title:"Primera opción a revisar: Régimen Especial (RER)", reason:"Las ventas y compras que declaraste están bajo los límites publicados y tu escenario no activa una exclusión conocida en esta preselección. El RER permite emitir facturas y boletas, pero hay que confirmar el CIIU exacto antes de elegirlo.", checks:["Límite general: S/ 525,000 anuales en ingresos y compras, hasta S/ 126,000 en activos computables y máximo 10 trabajadores por turno.","Pago mensual de renta: 1.5% de ingresos netos; además IGV de operaciones gravadas, con crédito fiscal si procede.","La actividad exacta puede excluirte. Confírmala con SUNAT antes de acogerte."], status:"PRESELECCION" };
   const annualLimitRmt = 1700 * 5500;
-  if (salesKnown && legalKnown && customersKnown && q.P23 && annualSales <= annualLimitRmt && (annualSales > 525000 || (rerKnown && !rerFits))) return { code:"RMT", title:"RMT: alternativa para revisar con SUNAT", reason:"La estimación supera el límite general de ingresos del RER o los datos completos muestran que no se cumple alguna de sus condiciones revisadas. Por eso el RMT merece compararse; no queda elegido automáticamente y aún hay que revisar sus exclusiones.", checks:["El RMT permite emitir facturas y boletas y admite hasta 1,700 UIT de ingresos netos anuales, sujeto a exclusiones.", "Necesitar factura no obliga por sí solo a elegir RMT: el RER también permite emitirla si cumples sus condiciones.", "Lleva tu actividad CIIU, forma legal, clientes y estimación de ingresos y gastos a SUNAT o a un contador para confirmar la opción."], status:"PRESELECCION" };
-  if (salesKnown && annualSales > annualLimitRmt) return { code:"RG", title:"Primera opción a revisar: Régimen General", reason:"La proyección supera el límite general de ingresos del RMT. El Régimen General no tiene tope de ingresos, pero requiere verificar la actividad y tus obligaciones completas.", checks:["El pago a cuenta mensual compara el coeficiente con 1.5% de ingresos netos.","La regularización anual depende de la renta neta imponible.","Confirma el cálculo y el régimen con SUNAT antes de inscribirte."], status:"PRESELECCION" };
+  if (rerKnown && customersKnown && context.needsInvoices !== null && annualSales <= annualLimitRmt && (annualSales > 525000 || (rerKnown && !rerFits))) return { code:"RMT", title:"RMT: alternativa para revisar con SUNAT", reason:"La estimación supera el límite general de ingresos del RER o los datos completos muestran que no se cumple alguna de sus condiciones revisadas. Por eso el RMT merece compararse; no queda elegido automáticamente y aún hay que revisar sus exclusiones.", checks:["El RMT permite emitir facturas y boletas y admite hasta 1,700 UIT de ingresos netos anuales, sujeto a exclusiones.", "Necesitar factura no obliga por sí solo a elegir RMT: el RER también permite emitirla si cumples sus condiciones.", "Lleva tu actividad CIIU, forma legal, clientes y estimación de ingresos y gastos a SUNAT o a un contador para confirmar la opción."], status:"PRESELECCION" };
+  if (rerKnown && customersKnown && context.needsInvoices !== null && annualSales > annualLimitRmt) return { code:"RG", title:"Primera opción a revisar: Régimen General", reason:"La proyección supera el límite general de ingresos del RMT. El Régimen General no tiene tope de ingresos, pero requiere verificar la actividad y tus obligaciones completas.", checks:["El pago a cuenta mensual compara el coeficiente con 1.5% de ingresos netos.","La regularización anual depende de la renta neta imponible.","Confirma el cálculo y el régimen con SUNAT antes de inscribirte."], status:"PRESELECCION" };
   const missing = [
     !context.activityId && (context.otherActivity.trim() ? "Confirma el CIIU que corresponde a lo que describiste; la plataforma no debe inventar ese código." : "Describe qué producto venderás o qué servicio ofrecerás para sugerir un CIIU."),
     !legalKnown && "Define si operarás como persona natural o persona jurídica.",
-    !salesKnown && (String(q.P20 || "")==="Todavía no puedo estimarlo" ? "Aún no tienes una estimación mensual. Usa la calculadora de cantidad de ventas/servicios por cobro promedio; si no puedes hacerlo ahora, deja este dato pendiente." : String(q.P20 || "").trim() ? "Elegiste un rango de ingresos. Para afinar la recomendación, convierte tu rango en un monto aproximado con la calculadora." : "Estima cuánto cobrarías en un mes con la calculadora; si aún no puedes, elige que todavía no puedes estimarlo."),
+    !salesKnown && (String(q.P20 || "")==="Todavía no puedo estimarlo" ? "Aún no tienes una estimación mensual. Usa la calculadora de cantidad de ventas/servicios por cobro promedio; si no puedes hacerlo ahora, deja este dato pendiente." : String(q.P20 || "").trim() ? "Elegiste un rango de ingresos. Para afinar la recomendación, ingresa una proyección mensual con la calculadora cuando dispongas de cantidades y precios." : "Estima cuánto cobrarías en un mes con la calculadora; si aún no puedes, elige que todavía no puedes estimarlo."),
     !customersKnown && "Indica si atenderás personas, empresas o ambos.",
     (!q.P23 || String(q.P23).startsWith("No lo sé")) && "Aclara si tus clientes necesitarán factura.",
     !purchasesKnown && "Calcula cuánto gastarías en productos, ingredientes o materiales al mes.",
     !assetsKnown && "Estima el valor de equipos o maquinaria que usará el negocio (si no tienes, escribe 0).",
-    !(q.P28 === "No" || (q.P28 === "Sí" && Boolean(String(q.P29 || "").trim()) && Boolean(String(q["P29.1"] || "").trim()))) && "Indica si tendrás trabajadores; si respondes que sí, cuántos serán y cuántos coincidirán por turno.",
+    !(q.P28 === "No" || (q.P28 === "Sí" && hasAmount(q, "P29") && hasAmount(q, "P29.1"))) && "Indica si tendrás trabajadores; si respondes que sí, cuántos serán y cuántos coincidirán por turno.",
   ].filter(Boolean) as string[];
   return { title:"Completa estos datos y comparamos tus opciones", reason:"No necesitas haber empezado a vender ni llevar documentos. Con una descripción y estimaciones honestas podemos revisar qué regímenes podrían encajar y explicarte qué confirmar con SUNAT.", checks:missing.length?missing:["Pregunta a SUNAT si tu CIIU tiene alguna exclusión.", "Compara tus cobros estimados con gastos, compras y comprobantes que emitirás.", "La recomendación será orientativa; confirma tu elección con SUNAT antes de inscribirte."], status:"FALTAN_DATOS" };
 }

@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { RuleEngine } from "@/lib/rule-engine";
 import { rules, sources } from "@/lib/seed-catalog";
-import type { BusinessContext } from "@/lib/types";
+import { readFoodContext } from "@/lib/business-context";
+import { scopeMessage } from "@/lib/gastronomy";
 
 export async function POST(request: Request) {
-  const context = await request.json() as BusinessContext;
+  const context = await readFoodContext(request);
+  if (!context) return NextResponse.json({ error: scopeMessage }, { status: 400 });
   const diagnosticDate = new Date().toISOString().slice(0, 10);
   const source=sources.find(item=>item.id==="sunat-regimes");
   const verification=source?.status==="VIGENTE" && source.nextReviewAt>=diagnosticDate?"VIGENTE":"POR_VERIFICAR";

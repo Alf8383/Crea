@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { questions, visibleQuestions } from "@/lib/questionnaire";
+import { foodQuestions, questions } from "@/lib/questionnaire";
 import { requirements, rules, sources } from "@/lib/seed-catalog";
 
 type Tab = "reglas" | "requisitos" | "fuentes" | "preguntas" | "auditoria";
 const labels: Record<Tab, string> = { reglas: "Reglas", requisitos: "Requisitos", fuentes: "Fuentes", preguntas: "Preguntas", auditoria: "Auditoría" };
-const sectorNames = ["Restaurante / alimentos", "Tienda / comercio", "Tecnología", "Servicios", "Construcción", "Transporte", "Manufactura", "Turismo", "Hospedaje", "Educación", "Salud", "Belleza", "Agropecuario", "Importación", "Exportación", "Entretenimiento"];
-const allQuestions = [...questions.flat(), ...sectorNames.flatMap(P01 => visibleQuestions(3, { P01 }).filter(q => !questions[3].some(base => base.id === q.id)))];
+const allQuestions = [...questions.flat(), ...foodQuestions];
 
 export function AdminConsole() {
   const [tab, setTab] = useState<Tab>("reglas");

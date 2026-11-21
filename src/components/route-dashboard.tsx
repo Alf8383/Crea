@@ -5,10 +5,16 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { categories, requirementById, sourceById } from "@/lib/seed-catalog";
 import type { AppliedRequirement, BusinessContext, RequirementStatus, TaxRecommendation } from "@/lib/types";
+import { toContext } from "@/lib/business-context";
+import { foodScopeYes, foodSector, isFoodType } from "@/lib/gastronomy";
 import { scopedStorageKey } from "@/lib/account-storage";
 import { BusinessSetupAdvicePanel, PracticalGuidePanel, TaxPathPanel } from "@/components/practical-guide-panel";
 
-const fallback: BusinessContext={businessName:"Mi negocio",purpose:"crear",sectorId:"comercio",activityId:"tienda",otherActivity:"",department:"Cajamarca",province:"Cajamarca",district:"Cajamarca",legalPerson:"aun-no-se",hasPartners:false,partnerCount:1,hasPhysicalLocation:false,servesPublic:false,employeeCount:0,employeeCountPerShift:0,sellsOnline:false,preparesFood:false,importsGoods:false,exportsGoods:false,providesRegulatedService:false,customerType:"aun-no-se",monthlyRevenue:0,monthlyPurchases:0,annualPurchases:0,fixedAssets:0,needsInvoices:null,hasMultipleLocations:false,foreignSourceIncome:false,collectsPersonalData:false};
+const fallback = toContext({
+ P01: "Restaurante", P01_SCOPE: foodScopeYes, P02: "Menú diario en salón", P03: "Solo tengo la idea",
+ P04: "Cajamarca", P05: "Cajamarca", P06: "Cajamarca", P10: "Sí", P12: "Sí", P22: "Personas",
+ R01: "Sí", R02: "Sí", R03: "Sí", R06: "No", R07: "No",
+});
 const statusLabel:Record<RequirementStatus,string>={PENDIENTE:"Pendiente",EN_PROCESO:"En proceso",COMPLETADO:"Completado",NO_APLICA:"No aplica",REQUIERE_REVISION:"Requiere revisión"};
 const taxLabel={COMPATIBLE:"Cumple lo evaluado",INCOMPATIBLE:"No compatible",INFORMACION_INSUFICIENTE:"Por verificar"} as const;
 const taxColor={COMPATIBLE:"bg-emerald-100 text-emerald-800",INCOMPATIBLE:"bg-rose-100 text-rose-800",INFORMACION_INSUFICIENTE:"bg-amber-100 text-amber-900"} as const;
@@ -16,7 +22,7 @@ const tabs=["Mi ruta","Comparar regímenes","Mis obligaciones"] as const;
 type Tab=(typeof tabs)[number];
 const documentGuides:Record<string,{purpose:string;where:string;how:string;example:string;visual:string;url:string;link:string}>={
  "DNI":{purpose:"Sirve para confirmar tu identidad cuando sacas el RUC de tu negocio.",where:"SUNAT. Si eres persona natural, puedes iniciar el trámite desde la app Personas SUNAT.",how:"Ten tu DNI vigente a la mano. Si lo haces por la app, no necesitas llevarlo a una oficina.",example:"Es como cuando muestras tu DNI para confirmar que una cuenta o trámite es tuyo.",visual:"Tu DNI",url:"https://www.gob.pe/284-sacar-ruc-persona-natural",link:"Ver cómo sacar el RUC"},
- "Actividad económica":{purpose:"Es contar en palabras simples qué harás en tu negocio para que SUNAT lo registre correctamente.",where:"SUNAT, al inscribir o actualizar el RUC.",how:"No es un papel para llevar: describe tu actividad. Por ejemplo: “organizo tours en Cajamarca y acompaño a los visitantes”.",example:"En vez de escribir solo “turismo”, cuenta qué servicio ofrecerás y a quién.",visual:"¿Qué harás?",url:"https://centrovirtual.sunat.gob.pe/tramites/inscribete-ruc",link:"Ver qué declarar en el RUC"},
+ "Actividad económica":{purpose:"Es contar en palabras simples qué harás en tu negocio para que SUNAT lo registre correctamente.",where:"SUNAT, al inscribir o actualizar el RUC.",how:"No es un papel para llevar: describe tu actividad. Por ejemplo: “preparo menús en Cajamarca y los sirvo en el local”.",example:"En vez de escribir solo “comida”, cuenta qué servicio ofrecerás y a quién.",visual:"¿Qué harás?",url:"https://centrovirtual.sunat.gob.pe/tramites/inscribete-ruc",link:"Ver qué declarar en el RUC"},
  "Domicilio fiscal":{purpose:"Es la dirección que registras para que SUNAT sepa dónde ubicar tu negocio en sus registros.",where:"SUNAT, al inscribir o actualizar tu RUC.",how:"Ten clara la dirección completa. Si es distinta a la de tu DNI y haces el trámite presencial, podrían pedirte un documento donde aparezca esa dirección; confirma cuál aceptan para tu caso. En línea, SUNAT puede verificarla después.",example:"Por ejemplo: la dirección desde donde atiendes o administras el negocio.",visual:"La dirección",url:"https://www.gob.pe/284-sacar-ruc-persona-natural",link:"Ver requisitos para sacar el RUC"},
  "Proyección de ingresos y compras":{purpose:"Te ayuda a comparar los regímenes y pensar cuál podría ajustarse a tu negocio.",where:"Es información para preparar tu decisión antes de elegir régimen en SUNAT; normalmente no se entrega como documento.",how:"Anota un cálculo aproximado por mes. Ejemplo: espero cobrar S/ 4,000 y gastar S/ 1,400 en productos, ingredientes o materiales.",example:"No tiene que ser exacto: sirve para comparar opciones y luego confirmar cuál te corresponde.",visual:"Ingresos − compras",url:"https://centrovirtual.sunat.gob.pe/tramites/inscribete-ruc",link:"Ver qué considerar antes de elegir régimen"},
  "Datos del proveedor":{purpose:"Son los datos de tu negocio que deben aparecer en el Libro de Reclamaciones para que tus clientes sepan quién les vendió o brindó el servicio.",where:"En el Libro de Reclamaciones de tu negocio. No se llevan a SUNAT ni se registra el libro ante Indecopi.",how:"Cuando tengas tu negocio registrado, coloca su nombre, RUC y dirección en el Libro de Reclamaciones. Este debe estar disponible para tus clientes.",example:"Es parecido a poner los datos de tu negocio en un letrero de atención al cliente.",visual:"Libro de reclamos",url:"https://consumidor.gob.pe/libro-de-reclamaciones/",link:"Ver guía de Indecopi"},
@@ -37,7 +43,7 @@ function StatusDot({status}:{status:RequirementStatus}){
  return <span className={"grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-bold text-white "+(status==="COMPLETADO"?"bg-emerald-500":status==="EN_PROCESO"?"bg-[#1464f6]":"bg-slate-300")}>{status==="COMPLETADO"?"✓":status==="EN_PROCESO"?"◐":"·"}</span>;
 }
 
-export function RouteDashboard(){
+export function RouteDashboard({ initialContext }: { initialContext?: BusinessContext }){
  const [context,setContext]=useState<BusinessContext>(fallback);
  const [results,setResults]=useState<AppliedRequirement[]>([]);
  const [taxes,setTaxes]=useState<TaxRecommendation[]>([]);
@@ -46,18 +52,41 @@ export function RouteDashboard(){
  const [selected,setSelected]=useState<TaxRecommendation["code"]>("NRUS");
  const [expanded,setExpanded]=useState<string|null>(null);
  const [loading,setLoading]=useState(true);
+ const [error,setError]=useState("");
  const [isExample,setIsExample]=useState(true);
  const [showDocuments,setShowDocuments]=useState(false);
  useEffect(()=>{
-  const saved=localStorage.getItem(scopedStorageKey("efp-business-context"));
-  const current=saved?{...fallback,...JSON.parse(saved)}:fallback;
-  fetch("/api/diagnostics/evaluate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(current)})
-   .then(response=>response.json()).then(body=>{
-    setContext(current);setResults(body.results||[]);setTaxes(body.taxRecommendations||[]);setIsExample(!saved);
-    setSelected(body.taxRecommendations?.find((item:TaxRecommendation)=>item.status==="COMPATIBLE")?.code||"NRUS");
+  let active = true;
+  async function load() {
+   try {
+    const saved = localStorage.getItem(scopedStorageKey("efp-business-context"));
+    const stored: BusinessContext | null = initialContext || (saved ? JSON.parse(saved) : null);
+    const current = stored || fallback;
+    if (current.sectorId !== foodSector || !isFoodType(current.questionnaire?.P01)) {
+     throw new Error("Esta evaluación guardada corresponde a un rubro anterior al alcance gastronómico de CREA.");
+    }
+    if (current.questionnaire?.P01_SCOPE !== foodScopeYes) {
+     throw new Error("Confirma la actividad principal en el cuestionario para actualizar esta evaluación.");
+    }
+    const response = await fetch("/api/diagnostics/evaluate", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(current)});
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error);
+    if (!active) return;
+    setContext(toContext(current.questionnaire));
+    setResults(body.results);
+    setTaxes(body.taxRecommendations);
+    setIsExample(!stored);
+    setSelected(body.taxRecommendations.find((item:TaxRecommendation)=>item.status==="COMPATIBLE")?.code||"NRUS");
     setStatuses(JSON.parse(localStorage.getItem(scopedStorageKey("efp-requirement-statuses"))||"{}"));
-   }).finally(()=>setLoading(false));
- },[]);
+   } catch (cause) {
+    if (active) setError(cause instanceof Error ? cause.message : "No se pudo cargar la evaluación.");
+   } finally {
+    if (active) setLoading(false);
+   }
+  }
+  void load();
+  return () => { active = false; };
+ },[initialContext]);
  const category=categories.find(item=>item.id===context.sectorId);
  const selectedTax=taxes.find(item=>item.code===selected);
  const preparingToStart=["Solo tengo la idea","Estoy preparando el negocio"].includes(String(context.questionnaire?.P03||""));
@@ -68,6 +97,11 @@ export function RouteDashboard(){
  const needsReview=results.filter(item=>item.verification!=="VIGENTE").length;
  const change=(id:string,status:RequirementStatus)=>{const next={...statuses,[id]:status};setStatuses(next);localStorage.setItem(scopedStorageKey("efp-requirement-statuses"),JSON.stringify(next));};
  const today=new Date();const month=today.toLocaleDateString("es-PE",{month:"long",year:"numeric"});const first=(new Date(today.getFullYear(),today.getMonth(),1).getDay()+6)%7;const last=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
+ if (error) return <main className="mx-auto max-w-3xl space-y-5 p-8">
+  <h1 className="text-2xl font-bold">Evaluación guardada</h1>
+  <p role="alert">{error}</p>
+  <Link href="/negocios/nuevo" className="font-bold text-[#1464f6] underline">Abrir cuestionario</Link>
+ </main>;
  return <main className="min-h-screen bg-[#edf5fb] text-[#071c56]"><div className="mx-auto grid min-h-screen max-w-[1600px] lg:grid-cols-[250px_1fr]">
   <aside className="hidden flex-col bg-[#152b46] px-5 py-8 text-white lg:flex"><Link href="/" className="px-5 text-4xl font-black">Crea</Link><nav className="mt-12 space-y-2">{[["Inicio","/"],["Mi empresa","/negocios"],["Mi ruta","#ruta"],["Mis obligaciones","#obligaciones"],["Ayuda","#ayuda"]].map(([title,href],index)=><Link key={title} href={href} onClick={()=>{if(index===2)setTab("Mi ruta");if(index===3)setTab("Mis obligaciones");}} className={"block rounded-xl px-5 py-4 text-lg "+((tab==="Mi ruta"&&index===2||tab==="Mis obligaciones"&&index===3)?"bg-[#1464f6] font-bold":"text-blue-100 hover:bg-white/10")}>{["⌂","▣","☷","▢","?"][index]}　{title}</Link>)}</nav><p className="mt-auto px-5 text-sm leading-6 text-blue-200">Guía orientativa con fuentes oficiales y condiciones de revisión visibles.</p></aside>
   <div className="min-w-0"><header className="flex items-center justify-between border-b border-blue-100 bg-white px-6 py-5 sm:px-10"><Link href="/" className="text-2xl font-black text-[#0a318c] lg:hidden">Crea</Link><p className="hidden text-sm font-semibold text-slate-500 lg:block">Tu espacio de emprendimiento</p><Link href="/negocios/nuevo" className="rounded-xl border border-blue-200 px-4 py-2 text-sm font-bold text-[#1464f6]">Nueva evaluación</Link></header>

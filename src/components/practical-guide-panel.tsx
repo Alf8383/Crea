@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTaxPath, practicalGuides } from "@/lib/practical-guides";
 import { activities, sourceById } from "@/lib/seed-catalog";
+import { classifyFood } from "@/lib/gastronomy";
 import type { BusinessContext } from "@/lib/types";
 
 export function PracticalGuidePanel({ requirementId, context }: { requirementId: string; context: BusinessContext }) {
@@ -8,6 +9,14 @@ export function PracticalGuidePanel({ requirementId, context }: { requirementId:
   if (!guide) return null;
   const source = sourceById(guide.sourceId);
   const isMunicipal = requirementId === "license" || requirementId === "itse";
+  const answers = context.questionnaire;
+  const operatingDetails = [
+    answers?.R09 === "Sí" && "Indica qué instalación de gas usarás.",
+    answers?.R10 === "Sí" && "Incluye los hornos, parrillas o freidoras en la descripción del equipo.",
+    answers?.R11 === "Sí" && "Describe el sistema previsto de extracción o ventilación.",
+    answers?.R12 === "Sí" && "Consulta si el giro y horario declarados admiten el expendio de bebidas alcohólicas.",
+  ].filter(Boolean);
+  const mobileOrHome = answers?.P01 === "Food truck o puesto móvil" || answers?.P15 === "De manera ambulante o itinerante" || answers?.P15 === "Desde mi vivienda";
   return <div className="mt-5 space-y-4 border-t border-blue-100 pt-5">
     <div className="grid gap-4 md:grid-cols-2">
       <section className="rounded-2xl border border-blue-100 bg-white p-4"><h3 className="font-bold">Dónde ir</h3><p className="mt-2 text-sm leading-6 text-slate-700">{guide.where}</p>{isMunicipal&&<p className="mt-2 text-sm font-semibold text-[#1464f6]">Ubicación declarada: {[context.district, context.province, context.department].filter(Boolean).join(", ") || "Ubicación no informada"}</p>}</section>
@@ -19,21 +28,26 @@ export function PracticalGuidePanel({ requirementId, context }: { requirementId:
       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4"><h3 className="font-bold text-amber-950">¿Hay que pagar?</h3><p className="mt-2 text-sm leading-6 text-amber-950">{guide.cost}</p></section>
     </div>
     {guide.note&&<p className="rounded-xl bg-blue-50 p-4 text-sm leading-6 text-[#102c68]">{guide.note}</p>}
+    {isMunicipal && operatingDetails.length > 0 && <ul className="list-disc space-y-1 rounded-xl bg-blue-50 py-3 pl-8 pr-4 text-sm leading-6 text-[#102c68]">
+      {operatingDetails.map(detail => <li key={String(detail)}>{detail}</li>)}
+    </ul>}
+    {requirementId === "sanidad" && <p className="text-sm leading-6 text-slate-700">
+      <a href="https://www.gob.pe/institucion/minsa/normas-legales/4574749-811-2023-minsa" target="_blank" rel="noreferrer" className="font-bold underline">Consultar la modificación de la norma sanitaria de 2023 ↗</a>
+      {mobileOrHome && <span className="mt-2 block">Describe si cocinarás desde una vivienda o un puesto móvil y consulta en qué lugares puedes operar y qué condiciones municipales se aplican.</span>}
+    </p>}
     {source&&<a href={source.url} target="_blank" rel="noreferrer" className="inline-flex rounded-xl bg-[#1464f6] px-4 py-3 text-sm font-bold text-white">Abrir paso oficial de {source.institution} ↗</a>}
   </div>;
 }
 
 export function BusinessSetupAdvicePanel({ context }: { context: BusinessContext }) {
-  const description = `${context.businessName} ${context.otherActivity}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es");
-  const isTourism = context.sectorId === "turismo";
-  const doesBothTourism = isTourism && /ambos|agencia.*tour|tour.*agencia/.test(description);
-  const activity = activities.find(item => item.id === context.activityId);
-  const ciiu = isTourism
-    ? doesBothTourism ? "7911 y 7912 (una principal y la otra secundaria, si corresponde)" : activity?.ciiu === "7912" ? "7912" : activity?.ciiu === "7911" ? "7911" : "7911 o 7912, según lo que realmente hagas"
-    : activity && activity.ciiu !== "0000" ? `${activity.ciiu} · ${activity.name}` : "Aún no se puede sugerir con seguridad";
-  const ciiuMeaning = isTourism
-    ? "7911 corresponde a agencias que venden, reservan o coordinan servicios de viaje; 7912 a operadores que organizan y operan sus propios tours. Si haces ambas cosas, indícalas a SUNAT como actividad principal y secundaria según cuál genere tu actividad principal."
-    : activity ? `El código es una sugerencia basada en tu descripción (“${context.otherActivity}”). SUNAT debe confirmar que coincida con lo que harás exactamente; si ofreces varias actividades, pregunta cómo declarar la principal y las secundarias.` : "Describe qué harás, qué venderás o qué servicio brindarás. No uses un código al azar: solicita a SUNAT que confirme la actividad CIIU antes de inscribirte.";
+  const classification = context.questionnaire ? classifyFood(context.questionnaire) : null;
+  const activity = activities.find(item => item.id === classification?.activityId);
+  const ciiu = activity ? "5610 · Actividades de restaurantes y de servicio móvil de comidas" : "Clasificación por verificar";
+  const ciiuMeaning = classification?.review
+    ? "Confirma con SUNAT cuál es tu actividad principal y si corresponde registrar actividades adicionales por la elaboración de envasados, distribución u otro servicio declarado."
+    : activity
+    ? "La sugerencia considera tu tipo de establecimiento, cómo preparas o manipulas alimentos y tu modalidad de atención. Confirma el código ante SUNAT antes de declararlo."
+    : "La información todavía no permite sugerir un código. Lleva tu descripción y modalidades de atención a SUNAT para confirmar la clasificación.";
   const legalChoice = context.legalPerson;
   const legalAdvice = context.hasPartners && legalChoice === "natural"
     ? "Hay una inconsistencia: seleccionaste persona natural, pero también indicaste que habrá más de una persona propietaria. La persona natural con negocio se registra a nombre de una persona; si compartirán la propiedad, revisen una persona jurídica y acuerden socios, aportes y representante antes de constituirla."
@@ -59,11 +73,10 @@ export function BusinessSetupAdvicePanel({ context }: { context: BusinessContext
     <h2 id="setup-advice-title" className="mt-2 text-2xl font-black">Tu orientación inicial, paso a paso</h2>
     <p className="mt-2 text-sm leading-6 text-slate-600">Esta recomendación usa tus respuestas. Puedes preparar estos datos antes de vender; no necesitas inventar ventas pasadas ni comprar documentos.</p>
     <div className="mt-5 grid gap-4 lg:grid-cols-3">
-      <article className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4"><h3 className="font-bold">1. Actividad y código CIIU sugerido</h3><p className="mt-2 text-lg font-black text-[#1464f6]">{ciiu}</p><p className="mt-2 text-sm leading-6 text-slate-700">{ciiuMeaning}</p><a className="mt-3 inline-block text-sm font-bold text-[#1464f6] underline" href="https://cdn.www.gob.pe/uploads/document/file/1348266/Tabla_Oficial_CIIU_Rev4.pdf" target="_blank" rel="noreferrer">Ver tabla oficial CIIU ↗</a></article>
+      <article className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4"><h3 className="font-bold">1. Actividad y código CIIU sugerido</h3><p className="mt-2 text-lg font-black text-[#1464f6]">{ciiu}</p><p className="mt-2 text-sm leading-6 text-slate-700">{ciiuMeaning}</p><a className="mt-3 inline-block text-sm font-bold text-[#1464f6] underline" href="https://proyectos.inei.gob.pe/CIIU/frm_lista_notas.asp?wc_cod=5610" target="_blank" rel="noreferrer">Ver notas del INEI sobre la clase 5610 ↗</a></article>
       <article className="rounded-2xl border border-blue-100 p-4"><h3 className="font-bold">2. ¿Persona natural o empresa?</h3><p className="mt-2 text-sm leading-6 text-slate-700">{legalAdvice}</p>{legalChoice === "juridica" && <p className="mt-2 rounded-xl bg-blue-50 p-3 text-sm leading-5 text-slate-700"><b>Prepara:</b> DNI de propietarios, nombre propuesto, domicilio, actividad, aportes y quién representará la empresa. Pregunta el costo total a SID-SUNARP y a la notaría antes de pagar.</p>}</article>
       <article className="rounded-2xl border border-blue-100 p-4"><h3 className="font-bold">3. RUC: qué hacer y cuándo</h3><p className="mt-2 text-sm leading-6 text-slate-700">{rucAdvice}</p><p className="mt-2 rounded-xl bg-blue-50 p-3 text-sm leading-5 text-slate-700"><b>Ten a mano:</b> DNI, correo y celular, domicilio fiscal, fecha prevista de inicio y descripción de tu actividad. La inscripción digital en SUNAT no tiene tasa; constituir una empresa sí puede implicar pagos de notaría y registro.</p><a className="mt-3 inline-block text-sm font-bold text-[#1464f6] underline" href="https://centrovirtual.sunat.gob.pe/tramites/inscribete-ruc" target="_blank" rel="noreferrer">Inscribirse o revisar el RUC en SUNAT ↗</a></article>
     </div>
-    {isTourism && <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><b>Si ofrecerás servicios de agencia u operador turístico:</b> consulta también la inscripción en el Registro de Prestadores de Servicios Turísticos Calificados de MINCETUR/DIRCETUR de tu región. Pregunta qué modalidad aplica (agencia, operador, canal virtual o local) y confirma requisitos antes de atender. <a className="font-bold underline" href="https://www.gob.pe/7375-registrar-mi-agencia-de-viajes-y-turismo" target="_blank" rel="noreferrer">Ver trámite oficial ↗</a></div>}
   </section>;
 }
 

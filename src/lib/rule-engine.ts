@@ -1,3 +1,4 @@
+import { exactMonthlyRevenue, hasAmount } from "./business-context";
 import type { AppliedRequirement, BusinessContext, Condition, ConditionGroup, Rule, Source, TaxRecommendation, VerificationStatus } from "./types";
 
 const UIT_2026 = 5500;
@@ -25,8 +26,8 @@ export class RuleEngine {
   }
   static recommendTax(context: BusinessContext, sourceId = "sunat-regimes", verification: VerificationStatus = "VIGENTE"): TaxRecommendation[] {
     const answers=context.questionnaire;
-    const has=(key:string)=>!answers || Boolean(String(answers[key]||"").trim());
-    const exactSales=!answers || String(answers.P20||"").startsWith("monto:");
+    const has=(key:string)=>!answers || hasAmount(answers, key);
+    const exactSales=!answers || exactMonthlyRevenue(answers) !== undefined;
     const activityKnown=Boolean(context.activityId);
     const annualIncome=context.monthlyRevenue*12;
     const annualPurchases=context.monthlyPurchases*12;
@@ -37,7 +38,7 @@ export class RuleEngine {
     };
     const basics:string[]=[];
     if(context.legalPerson==="aun-no-se")basics.push("Indica si operarás como persona natural o jurídica.");
-    if(!context.otherActivity.trim()&&!context.activityId)basics.push("Describe la actividad económica.");
+    if(!activityKnown) basics.push("Confirma el CIIU y las exclusiones aplicables ante SUNAT.");
     const incomeMissing=exactSales?[]:["Indica una estimación mensual concreta: el rango por sí solo no permite evaluar todos los límites."];
     const nrusFailures:string[]=[];
     const nrusMissing=[...basics,...incomeMissing];
@@ -53,8 +54,6 @@ export class RuleEngine {
     if(!has("TAX_ASSETS"))nrusMissing.push("Indica los activos fijos aproximados.");
     if(context.hasMultipleLocations)nrusFailures.push("Declaraste más de una unidad de explotación.");
     if(!activityKnown)nrusMissing.push("La actividad aún necesita clasificación para comprobar exclusiones del régimen.");
-    if(["carga","agencia"].includes(context.activityId))nrusFailures.push("La actividad seleccionada requiere revisión por una exclusión del Nuevo RUS.");
-    if(context.sectorId==="turismo"&&["agencia","operador-turistico"].includes(context.activityId)&&!nrusFailures.length)nrusMissing.push("Confirma con SUNAT si la actividad turística exacta está excluida del Nuevo RUS.");
     const rerFailures:string[]=[];
     const rerMissing=[...basics,...incomeMissing];
     if(exactSales&&annualIncome>525000)rerFailures.push("Las ventas anuales estimadas superan S/ 525,000.");
@@ -63,14 +62,11 @@ export class RuleEngine {
     if(has("TAX_ASSETS")&&context.fixedAssets>126000)rerFailures.push("Los activos fijos estimados superan S/ 126,000.");
     if(!has("TAX_ASSETS"))rerMissing.push("Indica los activos fijos aproximados.");
     if(context.employeeCountPerShift>10)rerFailures.push("Declaraste más de diez trabajadores por turno.");
-    if(answers?.P28==="Sí"&&!has("P29.1"))rerMissing.push("Indica cuántos trabajadores coincidirían por turno.");
+    if(answers && answers.P28 !== "No" && (answers.P28 !== "Sí" || !has("P29.1"))) rerMissing.push("Indica si tendrás trabajadores y cuántos coincidirían por turno.");
     if(!activityKnown)rerMissing.push("La actividad necesita clasificación para comprobar exclusiones del RER.");
-    if(["contratista","carga"].includes(context.activityId))rerFailures.push("La actividad declarada aparece entre las restricciones generales del RER.");
-    if(context.sectorId==="turismo"&&!activityKnown)rerMissing.push("Confirma el CIIU exacto y revisa las exclusiones aplicables a esa actividad.");
     const rmtFailures=exactSales&&annualIncome>RMT_INCOME_LIMIT_2026?["Las ventas estimadas superan 1,700 UIT con el valor de UIT de 2026."]:[];
     const rmtMissing=[...basics,...incomeMissing];
     if(answers)rmtMissing.push("Confirma si existe vinculación empresarial o una sucursal de empresa extranjera: estas exclusiones no se preguntan en este test.");
-    if(answers?.P01==="Educación"||answers?.P01==="Salud")rmtMissing.push("Esta actividad necesita revisar exclusiones o tratamientos particulares.");
     const rgMissing=[...basics,...incomeMissing];
     if(!activityKnown)rgMissing.push("Describe la actividad para comprobar si requiere una revisión sectorial.");
     return [

@@ -8,7 +8,7 @@ export type BusinessContext = {
   businessName: string; purpose: "crear" | "formalizar" | "revisar"; sectorId: string; activityId: string; otherActivity: string;
   department: string; province: string; district: string; legalPerson: "natural" | "juridica" | "aun-no-se";
   hasPartners: boolean; partnerCount: number; hasPhysicalLocation: boolean; servesPublic: boolean; hasEmployees?: boolean; employeeCount: number; employeeCountPerShift: number;
-  sellsOnline: boolean; preparesFood: boolean; importsGoods: boolean; exportsGoods: boolean; providesRegulatedService: boolean;
+  sellsOnline: boolean; preparesFood: boolean; handlesFood?: boolean; importsGoods: boolean; exportsGoods: boolean; providesRegulatedService: boolean;
   customerType: "personas" | "empresas" | "ambos" | "aun-no-se"; monthlyRevenue: number; monthlyPurchases: number; annualPurchases: number; fixedAssets: number;
   needsInvoices: boolean | null; hasMultipleLocations: boolean; foreignSourceIncome: boolean; collectsPersonalData: boolean;
 };
