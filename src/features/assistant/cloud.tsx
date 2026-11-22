@@ -28,7 +28,7 @@ function contextualHelp(context: Context | null, topic?: AssistantTopic) {
 }
 const subscribeToHydration = () => () => {};
 const Register = createContext<(value: Context | null) => void>(() => {});
-type Message = { question: string; topic?: AssistantTopic; context?: string };
+type Message = { question: string; answer?: string; topic?: AssistantTopic; context?: string };
 
 export function useAssistantContext(context: Context) {
   const register = useContext(Register);
@@ -53,7 +53,6 @@ function CloudChat({ context }: { context: Context | null }) {
   const restricted = path === "/investigacion" || path.startsWith("/investigacion/");
   const [open, setOpen] = useState(false);
   const [authorized, setAuthorized] = useState(false);
-  const [model, setModel] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
@@ -102,7 +101,7 @@ function CloudChat({ context }: { context: Context | null }) {
     const details = (chosen?: AssistantTopic) => authorized ? contextualHelp(context, chosen) : undefined;
     setQuestion("");
     setProviderStatus("");
-    if (topic || !model || !endpoint) {
+    if (explicitTopic || !endpoint) {
       setMessages((previous) => [...previous.slice(-19), { question: value, topic, context: details(topic) }]);
       return;
     }
@@ -111,19 +110,18 @@ function CloudChat({ context }: { context: Context | null }) {
     setBusy(true);
     try {
       const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: value }), credentials: "omit", referrerPolicy: "no-referrer", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(6000)]) });
+        body: JSON.stringify({ question: value }), credentials: "omit", referrerPolicy: "no-referrer", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]) });
       if (!response.ok) throw new Error("Assistant unavailable");
       const data: unknown = await response.json();
       const suggestion = data && typeof data === "object" && "topic" in data ? data.topic : undefined;
+      const answer = data && typeof data === "object" && "answer" in data && typeof data.answer === "string" ? data.answer : undefined;
       if (!controller.signal.aborted) {
-        setProviderStatus("Selección de tema asistida por modelo. Respuesta del contenido verificado.");
-        const selected = isAssistantTopic(suggestion) ? suggestion : undefined;
-        setMessages((previous) => [...previous.slice(-19), { question: value, topic: selected, context: details(selected) }]);
+        const selected = isAssistantTopic(suggestion) ? suggestion : topic;
+        setMessages((previous) => [...previous.slice(-19), { question: value, answer, topic: selected, context: details(selected) }]);
       }
     } catch {
       if (!controller.signal.aborted) {
-        setProviderStatus("El proveedor no respondió. Sigue disponible la ayuda con fuentes verificadas.");
-        setMessages((previous) => [...previous.slice(-19), { question: value }]);
+        setMessages((previous) => [...previous.slice(-19), { question: value, topic, context: details(topic) }]);
       }
     } finally {
       setBusy(false);
@@ -150,7 +148,12 @@ function CloudChat({ context }: { context: Context | null }) {
           {messages.map((message, index) => <div className="grid gap-2 text-sm" key={index}>
             <p className="crea-cloud-question">{message.question}</p>
             <div className="rounded-xl bg-muted p-3">
-              {message.topic ? <>
+              {message.answer ? <>
+                <p>{message.answer}</p>
+                {message.topic && (assistantTopics[message.topic].url.startsWith("/") ?
+                  <Link className="mt-1 inline-block underline" href={assistantTopics[message.topic].url}>{assistantTopics[message.topic].source}</Link> :
+                  <a className="mt-1 inline-block underline" href={assistantTopics[message.topic].url} target="_blank" rel="noreferrer">{assistantTopics[message.topic].source}</a>)}
+              </> : message.topic ? <>
                 <p>{assistantTopics[message.topic].text}</p>
                 {assistantTopics[message.topic].url.startsWith("/") ?
                   <Link className="underline" href={assistantTopics[message.topic].url}>{assistantTopics[message.topic].source}</Link> :
@@ -167,9 +170,8 @@ function CloudChat({ context }: { context: Context | null }) {
           </div>
           {context?.stageAnswered && <label className="flex items-start gap-2 text-xs"><input type="checkbox" checked={authorized} onChange={(event) => {
             setAuthorized(event.target.checked);
-            if (!event.target.checked) setMessages((previous) => previous.map(({ question, topic }) => ({ question, topic })));
+            if (!event.target.checked) setMessages((previous) => previous.map(({ question, answer, topic }) => ({ question, answer, topic })));
           }} />Usar mi etapa y actividad en esta ayuda local</label>}
-          {endpoint && <label className="flex items-start gap-2 text-xs"><input type="checkbox" checked={model} onChange={(event) => setModel(event.target.checked)} />Enviar mi pregunta a un proveedor para identificar el tema</label>}
           <div className="flex gap-2">
             <Input value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={320} aria-label="Pregunta para CREA IA" placeholder="Escribe tu pregunta" />
             <Button type="submit" disabled={!question.trim() || busy}>{busy ? "Consultando…" : "Enviar"}</Button>
