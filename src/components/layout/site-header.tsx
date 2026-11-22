@@ -53,22 +53,23 @@ export function SiteHeader() {
 
   if (pathname === "/") return <>
     <a href="#contenido" className="skip-link">Saltar al contenido</a>
-    <header className="bg-[#edf5fb] px-4 pt-5 font-[Arial,Helvetica,sans-serif] sm:px-6">
-      <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4 rounded-t-[28px] bg-white px-6 py-6 sm:px-14">
+    <header className="border-b border-[#e5dfd3]/90 bg-[#faf8f4]/90 backdrop-blur-md lg:sticky lg:top-0 lg:z-30 [font-family:'Nunito_Variable','Nunito',system-ui,sans-serif]">
+      <div className="mx-auto flex max-w-[1360px] flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3.5 sm:px-10">
         <Brand />
-        <nav aria-label="Navegación principal" className="order-last flex w-full flex-wrap items-center gap-x-5 gap-y-1 text-sm font-semibold text-slate-700 lg:order-none lg:w-auto lg:gap-8">
-          <a href="#inicio" className="border-b-2 border-[#1464f6] py-3 text-[#071c56]">Inicio</a>
-          <a href="#como-funciona" className="py-3 hover:text-[#0a4db7]">¿Cómo funciona?</a>
-          <a href="#beneficios" className="py-3 hover:text-[#0a4db7]">Beneficios</a>
-          <a href="#preguntas" className="py-3 hover:text-[#0a4db7]">Preguntas frecuentes</a>
+        <nav aria-label="Navegación principal" className="order-last flex w-full flex-wrap items-center gap-x-1 gap-y-0.5 text-sm font-bold text-[#3b4b6b] lg:order-none lg:w-auto lg:gap-2">
+          <a href="#inicio" className="inline-flex min-h-11 items-center rounded-full px-3.5 text-[#0a1a3c] transition-colors hover:bg-[#efeae0] hover:text-[#0b4ac9]">Inicio</a>
+          <a href="#escenarios" className="inline-flex min-h-11 items-center rounded-full px-3.5 transition-colors hover:bg-[#efeae0] hover:text-[#0b4ac9]">Escenarios</a>
+          <a href="#como-funciona" className="inline-flex min-h-11 items-center rounded-full px-3.5 transition-colors hover:bg-[#efeae0] hover:text-[#0b4ac9]">¿Cómo funciona?</a>
+          <a href="#beneficios" className="inline-flex min-h-11 items-center rounded-full px-3.5 transition-colors hover:bg-[#efeae0] hover:text-[#0b4ac9]">Beneficios</a>
+          <a href="#preguntas" className="inline-flex min-h-11 items-center rounded-full px-3.5 transition-colors hover:bg-[#efeae0] hover:text-[#0b4ac9]">Preguntas frecuentes</a>
         </nav>
-        <div className="flex flex-wrap gap-2 text-sm font-bold">
+        <div className="flex flex-wrap items-center gap-2 text-sm font-extrabold">
           {user ? <>
-            <Link href="/negocios" className="rounded-xl bg-[#1464f6] px-4 py-3 text-white">Mis evaluaciones</Link>
+            <Link href="/negocios" className="inline-flex min-h-11 items-center rounded-full bg-[#0b4ac9] px-5 text-white transition-[transform,background-color] duration-150 hover:bg-[#0839a0] active:scale-[0.97]">Mis evaluaciones</Link>
             <Button variant="ghost" onClick={logout}>Salir <LogOut aria-hidden="true" /></Button>
           </> : <>
-            <Link href="/ingresar" className="rounded-xl border border-[#1464f6] px-4 py-3 text-[#0a4db7]">Iniciar sesión</Link>
-            <Link href="/registro" className="rounded-xl bg-[#1464f6] px-4 py-3 text-white">Crear cuenta</Link>
+            <Link href="/ingresar" className="inline-flex min-h-11 items-center rounded-full border border-[#c9d4e8] bg-white px-4 text-[#0a1a3c] transition-[transform,border-color,background-color] duration-150 hover:border-[#0b4ac9] hover:text-[#0b4ac9] active:scale-[0.97]">Iniciar sesión</Link>
+            <Link href="/registro" className="inline-flex min-h-11 items-center rounded-full bg-[#0b4ac9] px-5 text-white shadow-[0_8px_20px_-8px_rgba(11,74,201,0.55)] transition-[transform,background-color] duration-150 hover:bg-[#0839a0] active:scale-[0.97]">Crear cuenta</Link>
           </>}
         </div>
         {error && <p role="alert" className="w-full text-sm text-destructive">No pudimos cerrar tu sesión. Intenta de nuevo.</p>}
