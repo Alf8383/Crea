@@ -256,7 +256,7 @@ function Wizard({ uid, previous, restored, requestedField }: { uid?: string; pre
       onDescription={(value) => update("description", value)} onAnalysis={(value) => update("activityAnalysis", value)} onDecision={decideActivity} /> :
     id === "typicalSales" || id === "typicalPurchases" ? <section key={id} className="grid gap-4">
       <Question id={id} draft={draft} value={draft[id]} error={errors[id]} onChange={(value) => update(id, value)} />
-      <Button type="button" variant="outline" className="justify-self-start" aria-pressed={!draft[id]} onClick={() => update(id, "")}>Todavía no lo sé</Button>
+      <Button type="button" variant={!draft[id] ? "default" : "outline"} className="justify-self-start" aria-pressed={!draft[id]} onClick={() => update(id, "")}>Todavía no lo sé</Button>
       {id === "typicalSales" && <ProjectionCalculator taxBreakdown={{ required: false, reducedAvailable: draft.activity === "5610" }}
         onApply={(amounts, month, netAnnual) => {
           update("typicalSales", month.toFixed(2));
@@ -281,6 +281,26 @@ function Wizard({ uid, previous, restored, requestedField }: { uid?: string; pre
         </div>;
       })()}
     </div>;
+
+  if (!loading && !user) {
+    return (
+      <div className={styles.background}>
+        <div className={styles.shell}>
+          <div className="mx-auto grid max-w-xl gap-5 py-10 text-center">
+            <PageHeading
+              eyebrow="Evaluación guiada"
+              title="Inicia sesión para evaluar tu restaurante"
+              lead="Necesitas una cuenta para guardar tu evaluación, consultar tu diagnóstico tributario y seguir tu ruta de formalización."
+            />
+            <div className="flex flex-wrap justify-center gap-3">
+              <LinkButton href="/ingresar?volver=/negocios/nuevo">Iniciar sesión <ArrowRight aria-hidden="true" /></LinkButton>
+              <LinkButton href="/registro?volver=/negocios/nuevo" variant="outline">Crear cuenta</LinkButton>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return <div className={styles.background}>
     <div className={styles.shell}>
