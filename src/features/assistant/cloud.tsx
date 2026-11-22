@@ -11,6 +11,7 @@ import {
   type ChatModelAdapter,
 } from "@assistant-ui/react";
 import { ArrowDown, Check, Copy, RotateCcw, Send, Sparkles, Square, Trash2, X } from "lucide-react";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -93,9 +94,14 @@ function ThinkingTimer() {
 function UserMessage() {
   return (
     <MessagePrimitive.Root className="flex justify-end">
-      <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-[#0b4ac9] px-3.5 py-2.5 text-sm font-semibold leading-relaxed text-white shadow-[0_8px_20px_-10px_rgba(11,74,201,0.55)]">
+      <motion.div
+        initial={{ opacity: 0, y: 8, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
+        className="max-w-[85%] rounded-2xl rounded-br-sm bg-[#0b4ac9] px-3.5 py-2.5 text-sm font-semibold leading-relaxed text-white shadow-[0_8px_20px_-10px_rgba(11,74,201,0.55)]"
+      >
         <MessagePrimitive.Parts />
-      </div>
+      </motion.div>
     </MessagePrimitive.Root>
   );
 }
@@ -103,9 +109,14 @@ function UserMessage() {
 function AssistantMessage() {
   return (
     <MessagePrimitive.Root className="group flex flex-col items-start gap-1.5">
-      <div className="max-w-[92%] rounded-2xl rounded-bl-sm border border-[#e5dfd3] bg-white px-4 py-3 text-sm leading-relaxed text-[#0a1a3c] shadow-[0_8px_24px_-16px_rgba(10,26,60,0.18)]">
+      <motion.div
+        initial={{ opacity: 0, y: 8, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
+        className="max-w-[92%] rounded-2xl rounded-bl-sm border border-[#e5dfd3] bg-white px-4 py-3 text-sm leading-relaxed text-[#0a1a3c] shadow-[0_8px_24px_-16px_rgba(10,26,60,0.18)]"
+      >
         <MessagePrimitive.Parts />
-      </div>
+      </motion.div>
       <ActionBarPrimitive.Root
         hideWhenRunning
         autohide="not-last"
@@ -225,14 +236,21 @@ function CloudChat({ context }: { context: Context | null }) {
   const topics = context?.topics.length ? context.topics : (["ciiu", "sales", "tax"] as const);
 
   return (
-    <div className="crea-cloud print-hidden">
-      {open && (
-        <section
-          id="crea-cloud-panel"
-          className="crea-cloud-panel"
-          role="dialog"
-          aria-labelledby="crea-cloud-title"
-        >
+    <MotionConfig reducedMotion="user">
+      <div className="crea-cloud print-hidden">
+        <AnimatePresence>
+          {open && (
+            <motion.section
+              key="crea-cloud-panel"
+              id="crea-cloud-panel"
+              className="crea-cloud-panel"
+              role="dialog"
+              aria-labelledby="crea-cloud-title"
+              initial={{ opacity: 0, y: 12, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              transition={{ type: "spring", duration: 0.36, bounce: 0.15 }}
+            >
           <header className="crea-cloud-head">
             <div className="flex items-center gap-3">
               <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[#ffc400] text-[#081636] shadow-xs">
@@ -289,7 +307,7 @@ function CloudChat({ context }: { context: Context | null }) {
                       <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9a3b22]">
                         Asistente de orientación
                       </p>
-                      <p className="mt-1.5 [font-family:'Newsreader_Variable','Newsreader',Georgia,serif] text-lg font-semibold text-[#0a1a3c]">
+                      <p className="mt-1.5 [font-family:'Bricolage_Grotesque_Variable','Bricolage_Grotesque',system-ui,sans-serif] text-lg font-bold text-[#0a1a3c]">
                         ¡Hola! Soy CREA IA.
                       </p>
                       <p className="mt-1.5 text-sm leading-relaxed text-[#3b4b6b]">
@@ -382,10 +400,11 @@ function CloudChat({ context }: { context: Context | null }) {
               </ThreadPrimitive.Root>
             </AssistantRuntimeProvider>
           )}
-        </section>
-      )}
+          </motion.section>
+        )}
+      </AnimatePresence>
 
-      <button
+      <motion.button
         ref={button}
         type="button"
         disabled={!ready}
@@ -393,13 +412,15 @@ function CloudChat({ context }: { context: Context | null }) {
         aria-expanded={open}
         aria-controls={open ? "crea-cloud-panel" : undefined}
         className="crea-cloud-trigger"
+        whileTap={{ scale: 0.95 }}
         onClick={() => setOpen((value) => !value)}
       >
         <span className="crea-cloud-icon" aria-hidden="true">
           <Sparkles strokeWidth={2.2} />
         </span>
         <span className="crea-cloud-label">CREA IA</span>
-      </button>
-    </div>
+      </motion.button>
+      </div>
+    </MotionConfig>
   );
 }

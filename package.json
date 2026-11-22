@@ -17,6 +17,7 @@
   "dependencies": {
     "@assistant-ui/react": "^0.15.37",
     "@base-ui/react": "^1.9.0",
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
     "@fontsource-variable/newsreader": "^5.3.0",
     "@fontsource-variable/nunito": "^5.3.0",
     "@ui-sdk/core": "0.1.0-beta.6",
@@ -25,6 +26,7 @@
     "clsx": "^2.1.1",
     "firebase": "^13.2.0",
     "lucide-react": "^1.73.0",
+    "motion": "^14.14.0",
     "next": "16.3.7",
     "react": "19.2.8",
     "react-dom": "19.2.8",

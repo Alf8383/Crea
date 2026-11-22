@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import "@fontsource-variable/newsreader/opsz.css";
-import "@fontsource-variable/newsreader/opsz-italic.css";
+import "@fontsource-variable/bricolage-grotesque";
 import "@fontsource-variable/nunito";
 import { SessionProvider } from "@/features/auth/session";
 import { SiteHeader } from "@/components/layout/site-header";
