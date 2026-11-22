@@ -282,15 +282,16 @@ function Wizard({ uid, previous, restored, requestedField }: { uid?: string; pre
       })()}
     </div>;
 
+  const { user, loading } = useSession();
   if (!loading && !user) {
     return (
       <div className={styles.background}>
         <div className={styles.shell}>
           <div className="mx-auto grid max-w-xl gap-5 py-10 text-center">
             <PageHeading
-              eyebrow="Evaluación guiada"
+              label="Evaluación guiada"
               title="Inicia sesión para evaluar tu restaurante"
-              lead="Necesitas una cuenta para guardar tu evaluación, consultar tu diagnóstico tributario y seguir tu ruta de formalización."
+              description="Necesitas una cuenta para guardar tu evaluación, consultar tu diagnóstico tributario y seguir tu ruta de formalización."
             />
             <div className="flex flex-wrap justify-center gap-3">
               <LinkButton href="/ingresar?volver=/negocios/nuevo">Iniciar sesión <ArrowRight aria-hidden="true" /></LinkButton>
