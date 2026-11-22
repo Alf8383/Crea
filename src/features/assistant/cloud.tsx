@@ -169,8 +169,7 @@ function CloudChat({ context }: { context: Context | null }) {
             setAuthorized(event.target.checked);
             if (!event.target.checked) setMessages((previous) => previous.map(({ question, topic }) => ({ question, topic })));
           }} />Usar mi etapa y actividad en esta ayuda local</label>}
-          {endpoint ? <label className="flex items-start gap-2 text-xs"><input type="checkbox" checked={model} onChange={(event) => setModel(event.target.checked)} />Enviar mi pregunta a un proveedor para identificar el tema</label>
-            : <p className="text-xs text-muted-foreground">Modo local con fuentes verificadas. Proveedor de IA sin configurar.</p>}
+          {endpoint && <label className="flex items-start gap-2 text-xs"><input type="checkbox" checked={model} onChange={(event) => setModel(event.target.checked)} />Enviar mi pregunta a un proveedor para identificar el tema</label>}
           <div className="flex gap-2">
             <Input value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={320} aria-label="Pregunta para CREA IA" placeholder="Escribe tu pregunta" />
             <Button type="submit" disabled={!question.trim() || busy}>{busy ? "Consultando…" : "Enviar"}</Button>
