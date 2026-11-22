@@ -50,7 +50,7 @@ export function FormalizationRoute({ assessment, uid }: { assessment: Assessment
     </div>
     <p id="route-progress-label" className="text-sm text-muted-foreground" aria-live="polite">{complete} de {tasks.length} tareas marcadas como completadas</p>
     {storageWarning && <p role="status">El navegador bloqueó el guardado. El progreso se conserva mientras esta página esté abierta.</p>}
-    {!assessment.demo && <details className="rule-details rounded-2xl border border-blue-100 bg-white p-4">
+    {!assessment.demo && <details className="rule-details rounded-2xl border border-[#e5dfd3] bg-white p-5 shadow-[0_12px_28px_-20px_rgba(10,26,60,0.14)]">
       <summary className="font-bold">Agregar datos sobre mi local y personal</summary>
       <p className="mb-3 mt-2 text-sm text-muted-foreground">Completa los datos que conozcas para ajustar tus trámites. Se guardan en esta pestaña.</p>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -83,27 +83,27 @@ export function FormalizationRoute({ assessment, uid }: { assessment: Assessment
         {context.legalPerson === "juridica" && context.stage !== "idea" && <RouteSelect label="¿Tu empresa ya está inscrita en SUNARP?" value={answer(context.constitutionRegistered)} onChange={(value) => updateDetails({ constitutionRegistered: booleanAnswer(value) })} />}
       </div>
     </details>}
-    <ol className="overflow-hidden rounded-3xl border border-blue-100 bg-white px-4 sm:px-7">
+    <ol className="overflow-hidden rounded-[28px] border border-[#e5dfd3] bg-white px-4 shadow-[0_18px_46px_-26px_rgba(10,26,60,0.14)] sm:px-7">
       {tasks.map((task, index) => {
         const done = checked[task.id] ?? Boolean(task.declaredComplete);
         const open = expanded === task.id;
         const detailId = "tramite-" + task.id;
-        return <li key={task.id} className="relative grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-x-4 gap-y-3 border-b border-blue-100 py-5 last:border-0 not-last:before:absolute not-last:before:left-[1.3125rem] not-last:before:top-16 not-last:before:bottom-0 not-last:before:w-0.5 not-last:before:bg-blue-100 md:grid-cols-[2.75rem_minmax(0,1fr)_auto_auto] md:items-center">
-          <label className={"relative z-10 grid size-11 cursor-pointer place-items-center rounded-full has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 " + (done ? "bg-primary text-white" : "bg-slate-200 text-slate-600")}>
+        return <li key={task.id} className="relative grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-x-4 gap-y-3 border-b border-[#ece6dc] py-5 last:border-0 not-last:before:absolute not-last:before:left-[1.3125rem] not-last:before:top-16 not-last:before:bottom-0 not-last:before:w-0.5 not-last:before:bg-[#e5dfd3] md:grid-cols-[2.75rem_minmax(0,1fr)_auto_auto] md:items-center">
+          <label className={"relative z-10 grid size-11 cursor-pointer place-items-center rounded-full transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 " + (done ? "bg-[#115e38] text-white" : "bg-[#f2ede3] text-[#52607a] hover:bg-[#e8f0fe] hover:text-[#0b4ac9]")}>
             <input className="absolute inset-0 m-0 size-full cursor-pointer opacity-0" type="checkbox" checked={done}
               aria-label={task.title} onChange={(event) => toggle(task.id, event.target.checked)} />
-            {done ? <Check className="size-5" aria-hidden="true" /> : <span aria-hidden="true">·</span>}
+            {done ? <Check className="size-5" aria-hidden="true" /> : <span aria-hidden="true" className="text-xs font-extrabold">{index + 1}</span>}
           </label>
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase text-primary">{task.institution} · Paso {index + 1}</p>
-            <h3 className="mt-1 text-lg font-bold">{task.title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>
-            {task.conditional && <p className="mt-1 text-xs font-bold text-amber-800">Confirma si aplica a tu caso</p>}
+            <p className="text-xs font-extrabold uppercase tracking-[0.08em] text-[#9a3b22]">{task.institution} · Paso {index + 1}</p>
+            <h3 className="mt-1 [font-family:'Bricolage_Grotesque_Variable','Bricolage_Grotesque',system-ui,sans-serif] text-lg font-bold text-[#0a1a3c]">{task.title}</h3>
+            <p className="mt-1 text-sm text-[#3b4b6b]">{task.description}</p>
+            {task.conditional && <p className="mt-1 text-xs font-extrabold text-[#8a5700]">Confirma si aplica a tu caso</p>}
           </div>
-          <p className={"col-start-2 text-sm font-bold md:col-start-auto " + (done ? "text-primary" : "text-slate-600")}>{done ? "Completada" : task.conditional ? "Por confirmar" : "Pendiente"}</p>
-          <Button type="button" variant="outline" className="col-start-2 justify-self-start rounded-xl md:col-start-auto" aria-expanded={open} aria-controls={detailId}
+          <p className={"col-start-2 text-sm font-extrabold md:col-start-auto " + (done ? "text-[#115e38]" : "text-[#52607a]")}>{done ? "Completada" : task.conditional ? "Por confirmar" : "Pendiente"}</p>
+          <Button type="button" variant="outline" className="col-start-2 justify-self-start md:col-start-auto" aria-expanded={open} aria-controls={detailId}
             onClick={() => setExpanded(open ? null : task.id)}>{open ? "Ocultar" : "Ver detalle"}<span className="sr-only"> de {task.title}</span></Button>
-          <div id={detailId} hidden={!open} className="col-start-2 min-w-0 rounded-2xl bg-blue-50 p-4 text-sm sm:p-5 md:col-end-5">
+          <div id={detailId} hidden={!open} className="col-start-2 min-w-0 rounded-2xl border border-[#e5dfd3] bg-[#faf8f4] p-4 text-sm sm:p-5 md:col-end-5">
             <p><strong>Por qué aparece</strong> · {task.description}</p>
             <p className="mt-2"><strong>Entidad</strong> · {task.institution}</p>
             {task.after && <p className="mt-2"><strong>Paso previo</strong> · {task.after}</p>}

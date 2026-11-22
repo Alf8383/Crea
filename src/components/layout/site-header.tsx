@@ -38,14 +38,14 @@ export function SiteHeader() {
   const authPage = pathname === "/ingresar" || pathname === "/registro";
   if (pathname === "/negocios/nuevo" || authPage) return <>
     <a href="#contenido" className="skip-link">Saltar al contenido</a>
-    <header className="bg-[#edf5fb] px-4 pt-5 font-[Arial,Helvetica,sans-serif] sm:px-8">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 rounded-t-[28px] border-b border-blue-100 bg-white px-6 py-5 sm:px-10">
+    <header className="bg-[#faf8f4] px-4 pt-5 [font-family:'Nunito_Variable','Nunito',system-ui,sans-serif] sm:px-8">
+      <div className="mx-auto flex max-w-[78rem] flex-wrap items-center justify-between gap-3 rounded-t-[30px] border border-b-[#ebe5da] border-[#e5dfd3] bg-white px-6 py-4 sm:px-10">
         <Brand />
-        <nav aria-label="Navegación principal" className="flex gap-3 text-sm font-semibold text-[#0a4db7]">
-          <Link href="/" className="rounded-xl px-4 py-3 hover:bg-blue-50">Inicio</Link>
-          {authPage && !user ? <Link href={pathname === "/registro" ? "/ingresar" : "/registro"} className="rounded-xl bg-[#1464f6] px-4 py-3 text-white">
+        <nav aria-label="Navegación principal" className="flex items-center gap-2 text-sm font-extrabold text-[#0a1a3c]">
+          <Link href="/" className="inline-flex min-h-11 items-center rounded-full px-4 transition-colors hover:bg-[#f2ede3] hover:text-[#0b4ac9]">Inicio</Link>
+          {authPage && !user ? <Link href={pathname === "/registro" ? "/ingresar" : "/registro"} className="inline-flex min-h-11 items-center rounded-full bg-[#0b4ac9] px-5 text-white shadow-[0_8px_20px_-8px_rgba(11,74,201,0.55)] transition-[transform,background-color] hover:bg-[#0839a0] active:scale-[0.97]">
             {pathname === "/registro" ? "Iniciar sesión" : "Crear cuenta"}
-          </Link> : <Link href="/negocios" className="rounded-xl border border-blue-200 px-4 py-3">Mi espacio</Link>}
+          </Link> : <Link href="/negocios" className="inline-flex min-h-11 items-center rounded-full border border-[#d4ccbe] bg-[#faf8f4] px-5 text-[#0a1a3c] transition-colors hover:border-[#0b4ac9] hover:text-[#0b4ac9]">Mi espacio</Link>}
         </nav>
       </div>
     </header>

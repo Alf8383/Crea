@@ -484,7 +484,7 @@ function Review({ draft, visible, edit, open, setOpen }: { draft: AssessmentDraf
       const fields = group.filter((field) => visible.includes(field) && !(routeAssessmentFields as readonly AssessmentField[]).includes(field));
       if (!fields.length) return null;
       const rows = <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {fields.map((field) => <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50/60 p-4" key={field}>
+          {fields.map((field) => <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-2xl border border-[#e5dfd3] bg-[#faf8f4] p-4" key={field}>
             <dt className="text-sm text-muted-foreground">{assessmentFieldLabels[field]}</dt>
             <dd className="col-start-1 row-start-2 min-w-0 break-words font-semibold">{value(field) || "Sin indicar"}</dd>
             <dd className="col-start-2 row-span-2 row-start-1">

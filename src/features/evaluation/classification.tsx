@@ -133,7 +133,7 @@ export function ClassificationField({ profile, primary, secondary, analysis, err
           : "Puedes continuar con el diagnóstico y completar la clasificación después."}</p>
         <SourceLink href={CIIU_TABLE}>Consultar fuente oficial</SourceLink>
         <Button type="button" variant="outline" className="justify-self-start" onClick={editDescription}>Corregir descripción</Button>
-      </> : entry && code ? <div className="grid gap-3 break-words rounded-xl border border-border bg-blue-50/60 p-4">
+      </> : entry && code ? <div className="grid gap-3 break-words rounded-2xl border border-[#e5dfd3] bg-[#faf8f4] p-5">
         <p className="font-bold">{confirmed ? "Actividad confirmada" : "Actividad identificada"}</p>
         <p className="text-sm text-muted-foreground">{snapshot?.source === "ia" ? "Sugerencia de CREA IA" : snapshot ? "Orientación local del INEI" : "Clasificación guardada"}</p>
         <p><strong>{confirmed ? "CIIU" : "CIIU sugerido"} {code}</strong> · {entry.name}</p>

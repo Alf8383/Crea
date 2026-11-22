@@ -230,37 +230,37 @@ function WorkspaceContent({ initialSection }: { initialSection: "diagnostico" | 
   ];
   const showOverview = assessment && (section.key === "ruta" || section.key === "diagnostico");
 
-  const toolsNavigation = <nav className="flex flex-wrap gap-x-5 gap-y-2 pb-5 text-sm font-bold text-primary" aria-label="Herramientas de la evaluación">
+  const toolsNavigation = <nav className="flex flex-wrap gap-2 pb-6 text-sm font-extrabold" aria-label="Herramientas de la evaluación">
             {sections.filter(({ key }) => !navigation.some((entry) => entry.key === key) && (assessment || key === section.key || key === "simulador" || key === "ejemplos"))
-              .map(({ key, label }) => <Link key={key} className="hover:underline aria-[current=page]:underline" href={base + "seccion=" + key} aria-current={section.key === key ? "page" : undefined}>{label}</Link>)}
+              .map(({ key, label }) => <Link key={key} className="inline-flex min-h-10 items-center rounded-full border border-[#e5dfd3] bg-white px-4 py-1.5 text-[#3b4b6b] transition-colors hover:border-[#0b4ac9] hover:text-[#0b4ac9] aria-[current=page]:border-[#0b4ac9] aria-[current=page]:bg-[#0b4ac9] aria-[current=page]:text-white" href={base + "seccion=" + key} aria-current={section.key === key ? "page" : undefined}>{label}</Link>)}
           </nav>;
 
-  return <div className="crea-workspace grid min-h-[85vh] bg-[#edf5fb] lg:grid-cols-[clamp(13rem,15vw,18rem)_minmax(0,1fr)]">
-    <aside className="print-hidden bg-[#142a46] px-4 py-5 text-white lg:sticky lg:top-0 lg:self-start lg:min-h-screen lg:px-6">
+  return <div className="crea-workspace grid min-h-[85vh] bg-[#faf8f4] lg:grid-cols-[clamp(14rem,16vw,18rem)_minmax(0,1fr)]">
+    <aside className="print-hidden bg-[#0b2254] bg-[radial-gradient(ellipse_90%_55%_at_100%_0%,rgba(11,74,201,0.38),transparent_65%),radial-gradient(ellipse_70%_45%_at_0%_100%,rgba(255,196,0,0.12),transparent_65%)] px-4 py-5 text-white lg:sticky lg:top-0 lg:self-start lg:min-h-screen lg:px-6 lg:py-7">
       <Brand inverse />
-      <nav aria-label="Tu espacio de emprendimiento" className="mt-4 grid grid-cols-2 gap-1 sm:grid-cols-5 lg:mt-10 lg:grid-cols-1 lg:gap-2">
+      <nav aria-label="Tu espacio de emprendimiento" className="mt-5 grid grid-cols-2 gap-1.5 sm:grid-cols-5 lg:mt-10 lg:grid-cols-1 lg:gap-2">
         {navigation.map(({ key, label, href, icon: Icon }) =>
           <Link key={key} href={href} aria-current={section.key === key ? "page" : undefined}
-            className="flex min-w-0 items-center gap-2 rounded-xl px-3 py-3 text-sm font-bold text-white hover:bg-white/15 aria-[current=page]:bg-[#0e58d0] lg:gap-4 lg:px-4 lg:py-4 lg:text-base">
-            <Icon className="size-5 shrink-0 lg:size-6" aria-hidden="true" />{label}
+            className="flex min-w-0 items-center gap-2.5 rounded-2xl px-3.5 py-3 text-sm font-extrabold text-[#e2eaf8] transition-[background-color,color,transform] duration-150 hover:bg-white/12 hover:text-white active:scale-[0.98] aria-[current=page]:bg-[#0b4ac9] aria-[current=page]:text-white aria-[current=page]:shadow-[0_10px_24px_-10px_rgba(0,0,0,0.45)] lg:gap-3.5 lg:px-4 lg:py-3.5 lg:text-[0.95rem]">
+            <Icon className="size-5 shrink-0 text-[#ffc400]" aria-hidden="true" />{label}
           </Link>)}
       </nav>
     </aside>
     <div className="min-w-0">
-      <div className="print-hidden flex flex-wrap items-center justify-between gap-3 border-b border-blue-100 bg-white px-5 py-3 sm:px-8">
-        <p className="font-bold text-slate-700">Tu espacio de emprendimiento</p>
+      <div className="print-hidden flex flex-wrap items-center justify-between gap-3 border-b border-[#e5dfd3] bg-white/90 px-5 py-3.5 backdrop-blur-md sm:px-8">
+        <p className="[font-family:'Bricolage_Grotesque_Variable','Bricolage_Grotesque',system-ui,sans-serif] text-base font-bold text-[#0a1a3c]">Tu espacio de emprendimiento</p>
         <div className="flex flex-wrap items-center gap-2">
-          <LinkButton href="/negocios/nuevo" variant="outline" className="rounded-xl text-primary">{unfinished ? "Continuar evaluación en curso" : "Nueva evaluación"}</LinkButton>
+          <LinkButton href="/negocios/nuevo" variant="outline" className="rounded-full border-[#d4ccbe] bg-[#faf8f4] text-[#0a1a3c] hover:border-[#0b4ac9] hover:text-[#0b4ac9]">{unfinished ? "Continuar evaluación en curso" : "Nueva evaluación"}</LinkButton>
           {user ? <Button variant="ghost" onClick={() => void signOut().catch(() => setFailure("No pudimos cerrar tu sesión. Intenta de nuevo."))}>Salir</Button>
             : mode === "firebase" && <LinkButton href="/ingresar?volver=%2Fnegocios" variant="ghost">Ingresar</LinkButton>}
         </div>
       </div>
       <div className="mx-auto w-full max-w-[79rem] px-5 pb-16 pt-7 sm:px-8">
         <div className="print-hidden">
-          {showOverview && <p className="mb-2 text-sm font-bold uppercase text-primary sm:text-base">Restaurantes y servicios afines · {[assessment.context.district, assessment.context.province].filter(Boolean).join(", ")}</p>}
+          {showOverview && <p className="mb-2 text-sm font-extrabold text-[#9a3b22]">Restaurantes y servicios afines · {[assessment.context.district, assessment.context.province].filter(Boolean).join(", ")}</p>}
           <PageHeading headingRef={heading} title={!assessment && loaded && section.key === "diagnostico" ? "Mis evaluaciones" : section.title}
             description={section.key === "ruta" ? "Sigue los pasos que se activaron con tus respuestas." : undefined}
-            actions={assessment?.context.businessName && <span className="max-w-full break-words rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-bold shadow-sm">{assessment.context.businessName}</span>} />
+            actions={assessment?.context.businessName && <span className="inline-flex max-w-full items-center gap-2 break-words rounded-full border border-[#e5dfd3] bg-white px-4 py-2 text-sm font-extrabold text-[#0a1a3c] shadow-[0_6px_18px_-12px_rgba(10,26,60,0.2)]"><span aria-hidden="true" className="size-2 rounded-full bg-[#ffc400]" />{assessment.context.businessName}</span>} />
           {(section.key !== "ruta" || !assessment) && toolsNavigation}
         </div>
       <div className="min-w-0 space-y-4">

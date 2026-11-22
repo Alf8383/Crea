@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, KeyRound } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, KeyRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -15,13 +15,18 @@ import { useSession } from "./session";
 const emailSchema = z.email();
 const errors: Record<string, string> = {
   "auth/invalid-credential": "Comprueba tu correo y contraseña.",
+  "auth/invalid-email": "Ingresa un correo electrónico válido.",
   "auth/email-already-in-use": "Ya existe una cuenta con este correo. Puedes ingresar o recuperar tu contraseña.",
-  "auth/weak-password": "Elige una contraseña más segura.",
+  "auth/weak-password": "Elige una contraseña más segura (mínimo 8 caracteres).",
+  "auth/user-disabled": "Esta cuenta fue deshabilitada.",
   "auth/network-request-failed": "Revisa tu conexión e inténtalo de nuevo.",
   "auth/too-many-requests": "Hay demasiados intentos seguidos. Espera unos minutos e intenta otra vez.",
   "auth/popup-closed-by-user": "Se cerró la ventana de Google. Puedes volver a intentarlo.",
+  "auth/cancelled-popup-request": "Se canceló la ventana de Google. Intenta de nuevo.",
   "auth/popup-blocked": "Permite las ventanas emergentes para ingresar con Google.",
-  "auth/operation-not-allowed": "Este método de ingreso no está habilitado en el proyecto.",
+  "auth/operation-not-allowed": "Este método de ingreso no está habilitado en Firebase Authentication.",
+  "auth/configuration-not-found": "Firebase Authentication aún no está activado en el proyecto crea-958bf. Activa Email/Contraseña y Google en Firebase Console.",
+  "auth/unauthorized-domain": "Este dominio aún no está autorizado en Firebase Authentication (agrégalo en Configuración → Dominios autorizados).",
   "auth/account-exists-with-different-credential": "Ya existe una cuenta para este correo. Ingresa con el método que usaste al registrarte.",
 };
 
@@ -33,21 +38,22 @@ function authError(error: unknown) {
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
   const candidate = useSearchParams().get("volver");
-  const destination = candidate && ["/admin", "/investigacion", "/negocios", "/negocios?guardar=1"].includes(candidate) ? candidate : "/negocios";
+  const destination = candidate && ["/admin", "/investigacion", "/negocios", "/negocios/nuevo", "/negocios?guardar=1"].includes(candidate) ? candidate : "/negocios";
   const session = useSession();
   const [screen, setScreen] = useState<"login" | "register" | "recover">(mode);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [invalid, setInvalid] = useState<"email" | "password" | "">("");
 
-  async function submit(type: "form" | "google", data?: FormData) {
+  async function submit(type: "form" | "google") {
     setError("");
     setMessage("");
     setInvalid("");
     const address = email.trim();
-    const password = String(data?.get("password") ?? "");
     if (type === "form" && !emailSchema.safeParse(address).success) {
       setInvalid("email");
       document.getElementById("email")?.focus();
@@ -88,7 +94,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void submit("form", new FormData(event.currentTarget));
+    void submit("form");
   }
 
   const isLogin = screen === "login";
@@ -99,19 +105,20 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       : destination === "/investigacion" ? "Usa la cuenta vinculada a tu participación en el estudio."
         : destination === "/admin" ? "Usa tu cuenta de administración del catálogo."
           : "Accede a tus evaluaciones guardadas desde otros dispositivos.";
-  return <div className="crea-auth-page bg-[#edf5fb] px-4 pb-5 font-[Arial,Helvetica,sans-serif] text-[#071c56] sm:px-8">
-    <div className="mx-auto grid max-w-7xl gap-6 rounded-b-[28px] bg-white p-5 shadow-[0_20px_60px_#0b357518] sm:p-10 lg:grid-cols-2 lg:items-start">
-      <section className="order-last overflow-hidden rounded-3xl bg-[#e9f4ff] lg:order-first" aria-labelledby="auth-benefits">
-        <div className="relative h-40 sm:h-52">
-          <Image src="/cajamarca-plaza.jpg" alt="Plaza de Armas de Cajamarca" fill sizes="(min-width: 1024px) 45vw, 100vw" className="object-cover object-[center_62%]" />
+  return <div className="crea-auth-page bg-[#faf8f4] px-4 pb-8 [font-family:'Nunito_Variable','Nunito',system-ui,sans-serif] text-[#0a1a3c] sm:px-8">
+    <div className="mx-auto grid max-w-[78rem] gap-6 rounded-b-[30px] border border-t-0 border-[#e5dfd3] bg-white p-5 shadow-[0_24px_64px_-28px_rgba(10,26,60,0.16)] sm:p-10 lg:grid-cols-2 lg:items-start">
+      <section className="order-last overflow-hidden rounded-[26px] border border-[#e5dfd3] bg-[#faf8f4] lg:order-first" aria-labelledby="auth-benefits">
+        <div className="relative h-48 sm:h-60">
+          <Image src="/restaurante-cajamarca.webp" alt="Emprendedora gastronómica en Cajamarca" fill sizes="(min-width: 1024px) 45vw, 100vw" className="object-cover object-center" />
         </div>
         <div className="p-6 sm:p-8">
-          <h2 id="auth-benefits" className="text-2xl font-black sm:text-3xl">Organiza la formalización de tu negocio</h2>
-          <p className="mt-3 max-w-md text-slate-600">Evalúa tu actividad gastronómica en Cajamarca, estima tus ventas y consulta tu ruta de formalización.</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#9a3b22]">CREA · Cajamarca</p>
+          <h2 id="auth-benefits" className="mt-2 [font-family:'Bricolage_Grotesque_Variable','Bricolage_Grotesque',system-ui,sans-serif] text-2xl font-bold tracking-[-0.02em] text-[#0a1a3c] sm:text-3xl">Organiza la formalización de tu negocio</h2>
+          <p className="mt-3 max-w-md text-[#3b4b6b]">Evalúa tu actividad gastronómica en Cajamarca, estima tus ventas y guarda tu ruta paso a paso.</p>
         </div>
       </section>
-      <section className="crea-auth-card min-w-0 rounded-3xl border border-blue-100 bg-white p-6 sm:p-9" aria-labelledby="auth-title">
-        <h1 id="auth-title" className="mb-4 text-3xl font-black tracking-tight sm:text-4xl">{title}</h1>
+      <section className="crea-auth-card min-w-0 rounded-[26px] border border-[#e5dfd3] bg-white p-6 sm:p-9" aria-labelledby="auth-title">
+        <h1 id="auth-title" className="mb-4 [font-family:'Bricolage_Grotesque_Variable','Bricolage_Grotesque',system-ui,sans-serif] text-3xl font-bold tracking-[-0.025em] text-[#0a1a3c] sm:text-4xl">{title}</h1>
         {session.mode === "firebase" && !session.user && <p className="mb-5 text-muted-foreground">{intro}</p>}
         {session.loading ? <p role="status">Comprobando tu sesión…</p>
         : session.mode !== "firebase" ? <EmptyState title={session.mode === "demo" ? "Modo demostración" : "Cuentas sin conexión"}>
@@ -126,8 +133,17 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                 aria-invalid={invalid === "email"} aria-describedby={invalid === "email" ? "email-error" : undefined} />
             </Field>
             {!recovering && <Field id="password" label="Contraseña" hint={!isLogin ? "Usa al menos 8 caracteres." : undefined} error={invalid === "password" ? isLogin ? "Escribe tu contraseña." : "Usa al menos 8 caracteres." : undefined}>
-              <Input id="password" name="password" type="password" autoComplete={isLogin ? "current-password" : "new-password"}
-                aria-invalid={invalid === "password"} aria-describedby={invalid === "password" ? "password-error" : !isLogin ? "password-hint" : undefined} />
+              <div className="relative">
+                <Input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete={isLogin ? "current-password" : "new-password"}
+                  value={password} onChange={(event) => setPassword(event.target.value)}
+                  className="pr-12"
+                  aria-invalid={invalid === "password"} aria-describedby={invalid === "password" ? "password-error" : !isLogin ? "password-hint" : undefined} />
+                <button type="button" onClick={() => setShowPassword((value) => !value)}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  className="absolute right-1.5 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                  {showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+                </button>
+              </div>
             </Field>}
             {error && <Notice tone="error">{error}</Notice>}
             {message && <Notice tone="success">{message}</Notice>}
