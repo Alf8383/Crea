@@ -10,7 +10,7 @@ import {
   useLocalRuntime,
   type ChatModelAdapter,
 } from "@assistant-ui/react";
-import { ArrowDown, Check, Cloud, Copy, RotateCcw, Send, Sparkles, Square, Trash2, X } from "lucide-react";
+import { ArrowDown, Check, Copy, RotateCcw, Send, Sparkles, Square, Trash2, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -72,19 +72,19 @@ function ThinkingTimer() {
   const [elapsedMs, setElapsedMs] = useState(0);
 
   useEffect(() => {
-    if (!isRunning) {
-      setElapsedMs(0);
-      return;
-    }
+    if (!isRunning) return;
     const startedAt = Date.now();
     const id = window.setInterval(() => setElapsedMs(Date.now() - startedAt), 100);
-    return () => window.clearInterval(id);
+    return () => {
+      window.clearInterval(id);
+      setElapsedMs(0);
+    };
   }, [isRunning]);
 
   if (!isRunning) return null;
   return (
-    <div className="flex items-center gap-2 self-start rounded-2xl rounded-bl-sm border border-border/70 bg-muted/60 px-3.5 py-2 text-xs text-muted-foreground">
-      <Sparkles className="size-3.5 animate-pulse text-primary" aria-hidden="true" />
+    <div className="flex items-center gap-2 self-start rounded-2xl rounded-bl-sm border border-[#e5dfd3] bg-white px-3.5 py-2 text-xs font-bold text-[#3b4b6b] shadow-[0_6px_18px_-12px_rgba(10,26,60,0.2)]">
+      <Sparkles className="size-3.5 animate-pulse text-[#0b4ac9]" aria-hidden="true" />
       <span>Pensando… {(elapsedMs / 1000).toFixed(1)}s</span>
     </div>
   );
@@ -93,7 +93,7 @@ function ThinkingTimer() {
 function UserMessage() {
   return (
     <MessagePrimitive.Root className="flex justify-end">
-      <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-3.5 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-xs">
+      <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-[#0b4ac9] px-3.5 py-2.5 text-sm font-semibold leading-relaxed text-white shadow-[0_8px_20px_-10px_rgba(11,74,201,0.55)]">
         <MessagePrimitive.Parts />
       </div>
     </MessagePrimitive.Root>
@@ -102,23 +102,23 @@ function UserMessage() {
 
 function AssistantMessage() {
   return (
-    <MessagePrimitive.Root className="group flex flex-col items-start gap-1">
-      <div className="max-w-[92%] rounded-2xl rounded-bl-sm border border-border/70 bg-muted/60 px-3.5 py-2.5 text-sm leading-relaxed text-foreground shadow-xs">
+    <MessagePrimitive.Root className="group flex flex-col items-start gap-1.5">
+      <div className="max-w-[92%] rounded-2xl rounded-bl-sm border border-[#e5dfd3] bg-white px-4 py-3 text-sm leading-relaxed text-[#0a1a3c] shadow-[0_8px_24px_-16px_rgba(10,26,60,0.18)]">
         <MessagePrimitive.Parts />
       </div>
       <ActionBarPrimitive.Root
         hideWhenRunning
         autohide="not-last"
-        className="flex items-center gap-1 pl-1 text-[11px] text-muted-foreground"
+        className="flex items-center gap-1 pl-1 text-xs font-bold text-[#52607a]"
       >
         <ActionBarPrimitive.Copy asChild>
           <button
             type="button"
             aria-label="Copiar respuesta"
-            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-muted hover:text-foreground"
+            className="inline-flex min-h-7 items-center gap-1 rounded-full px-2.5 py-1 transition-colors hover:bg-[#efeae0] hover:text-[#0a1a3c]"
           >
             <MessagePrimitive.If copied>
-              <Check className="size-3 text-primary" />
+              <Check className="size-3 text-[#0b4ac9]" />
               <span>Copiado</span>
             </MessagePrimitive.If>
             <MessagePrimitive.If copied={false}>
@@ -131,7 +131,7 @@ function AssistantMessage() {
           <button
             type="button"
             aria-label="Regenerar respuesta"
-            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-muted hover:text-foreground"
+            className="inline-flex min-h-7 items-center gap-1 rounded-full px-2.5 py-1 transition-colors hover:bg-[#efeae0] hover:text-[#0a1a3c]"
           >
             <RotateCcw className="size-3" />
             <span>Reintentar</span>
@@ -234,13 +234,16 @@ function CloudChat({ context }: { context: Context | null }) {
           aria-labelledby="crea-cloud-title"
         >
           <header className="crea-cloud-head">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[#ffc400] text-[#081636] shadow-xs">
                 <Sparkles className="size-4" aria-hidden="true" />
               </span>
               <div>
-                <h2 id="crea-cloud-title">CREA IA</h2>
-                <p>Orientación gastronómica</p>
+                <h2 id="crea-cloud-title" className="flex items-center gap-1.5">
+                  CREA IA
+                  <span aria-hidden="true" className="inline-block size-1.5 rounded-full bg-[#ffc400]" />
+                </h2>
+                <p>Orientación gastronómica · Cajamarca</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -248,18 +251,26 @@ function CloudChat({ context }: { context: Context | null }) {
                 size="icon"
                 variant="ghost"
                 aria-label="Nueva conversación"
+                className="rounded-full text-[#cbd5e8] hover:bg-white/12 hover:text-white"
                 onClick={() => setThreadKey((k) => k + 1)}
               >
                 <Trash2 className="size-4" aria-hidden="true" />
               </Button>
-              <Button ref={close} size="icon" variant="ghost" aria-label="Cerrar CREA IA" onClick={() => setOpen(false)}>
+              <Button
+                ref={close}
+                size="icon"
+                variant="ghost"
+                aria-label="Cerrar CREA IA"
+                className="rounded-full text-[#cbd5e8] hover:bg-white/12 hover:text-white"
+                onClick={() => setOpen(false)}
+              >
                 <X aria-hidden="true" />
               </Button>
             </div>
           </header>
 
           {restricted ? (
-            <p className="p-5 text-sm">
+            <p className="p-5 text-sm leading-relaxed text-[#3b4b6b]">
               La asistencia está deshabilitada en el módulo de investigación para proteger las respuestas del pretest y el postest.
             </p>
           ) : (
@@ -267,16 +278,21 @@ function CloudChat({ context }: { context: Context | null }) {
               <ThreadPrimitive.Root className="flex min-h-0 flex-1 flex-col">
                 <ThreadPrimitive.Viewport className="crea-cloud-log relative flex flex-1 flex-col gap-3 overflow-y-auto p-4">
                   {context && (
-                    <div className="rounded-xl border border-border/60 bg-background/80 p-3 text-xs text-muted-foreground">
-                      <strong className="text-foreground">{context.stage}</strong>
-                      <p className="mt-0.5">{context.question}</p>
+                    <div className="rounded-2xl border border-[#e5dfd3] bg-[#f3eee5] p-3 text-xs text-[#3b4b6b]">
+                      <strong className="font-extrabold text-[#0a1a3c]">{context.stage}</strong>
+                      <p className="mt-0.5 leading-relaxed">{context.question}</p>
                     </div>
                   )}
 
                   <ThreadPrimitive.Empty>
-                    <div className="rounded-2xl border border-border/60 bg-muted/40 p-3.5 text-sm text-muted-foreground">
-                      <p className="font-medium text-foreground">¡Hola! Soy CREA IA.</p>
-                      <p className="mt-1">
+                    <div className="rounded-2xl border border-[#e5dfd3] bg-white p-4 shadow-[0_8px_24px_-16px_rgba(10,26,60,0.16)]">
+                      <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9a3b22]">
+                        Asistente de orientación
+                      </p>
+                      <p className="mt-1.5 [font-family:'Newsreader_Variable','Newsreader',Georgia,serif] text-lg font-semibold text-[#0a1a3c]">
+                        ¡Hola! Soy CREA IA.
+                      </p>
+                      <p className="mt-1.5 text-sm leading-relaxed text-[#3b4b6b]">
                         Pregúntame sobre RUC, regímenes tributarios, CIIU o formalización en Cajamarca. Evita incluir claves o datos personales.
                       </p>
                     </div>
@@ -295,9 +311,9 @@ function CloudChat({ context }: { context: Context | null }) {
                     <button
                       type="button"
                       aria-label="Ir al final"
-                      className="sticky bottom-1 self-center rounded-full border border-border bg-background/95 p-1.5 shadow-sm hover:bg-accent"
+                      className="sticky bottom-1 self-center rounded-full bg-[#0a1a3c] p-2 text-white shadow-md transition-transform hover:bg-[#132b5e] active:scale-95 disabled:hidden"
                     >
-                      <ArrowDown className="size-3.5" />
+                      <ArrowDown className="size-3.5" aria-hidden="true" />
                     </button>
                   </ThreadPrimitive.ScrollToBottom>
                 </ThreadPrimitive.Viewport>
@@ -319,7 +335,7 @@ function CloudChat({ context }: { context: Context | null }) {
                   </div>
 
                   {context?.stageAnswered && (
-                    <label className="flex items-start gap-2 text-xs">
+                    <label className="flex items-start gap-2 text-xs font-semibold text-[#3b4b6b]">
                       <input
                         type="checkbox"
                         checked={authorized}
@@ -334,19 +350,30 @@ function CloudChat({ context }: { context: Context | null }) {
                       placeholder="Escribe tu pregunta…"
                       aria-label="Pregunta para CREA IA"
                       maxLength={320}
-                      className="flex-1 rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      className="flex-1 rounded-full border border-[#cfc7b8] bg-[#faf8f4] px-4 py-2.5 text-sm text-[#0a1a3c] placeholder:text-[#52607a] outline-none transition-colors focus:border-[#0b4ac9] focus:bg-white focus:ring-2 focus:ring-[#0b4ac9]/25"
                     />
                     <ThreadPrimitive.If running={false}>
                       <ComposerPrimitive.Send asChild>
-                        <Button type="submit" size="icon" aria-label="Enviar pregunta">
-                          <Send className="size-4" />
+                        <Button
+                          type="submit"
+                          size="icon"
+                          aria-label="Enviar pregunta"
+                          className="size-10 shrink-0 rounded-full bg-[#0b4ac9] text-white shadow-[0_8px_18px_-8px_rgba(11,74,201,0.6)] transition-[transform,background-color] hover:bg-[#0839a0] active:scale-95"
+                        >
+                          <Send className="size-4" aria-hidden="true" />
                         </Button>
                       </ComposerPrimitive.Send>
                     </ThreadPrimitive.If>
                     <ThreadPrimitive.If running>
                       <ComposerPrimitive.Cancel asChild>
-                        <Button type="button" size="icon" variant="outline" aria-label="Detener respuesta">
-                          <Square className="size-3.5 fill-current" />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          aria-label="Detener respuesta"
+                          className="size-10 shrink-0 rounded-full border-[#0a1a3c] text-[#0a1a3c] hover:bg-[#f3eee5]"
+                        >
+                          <Square className="size-3.5 fill-current" aria-hidden="true" />
                         </Button>
                       </ComposerPrimitive.Cancel>
                     </ThreadPrimitive.If>
@@ -369,8 +396,7 @@ function CloudChat({ context }: { context: Context | null }) {
         onClick={() => setOpen((value) => !value)}
       >
         <span className="crea-cloud-icon" aria-hidden="true">
-          <Cloud fill="currentColor" strokeWidth={1.5} />
-          <Sparkles strokeWidth={2} />
+          <Sparkles strokeWidth={2.2} />
         </span>
         <span className="crea-cloud-label">CREA IA</span>
       </button>
