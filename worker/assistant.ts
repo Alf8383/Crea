@@ -99,11 +99,19 @@ async function classifyWithMiniMax(
   const content = data.choices?.[0]?.message?.content;
   if (!content) throw new Error("Empty provider response");
 
-  const value = extractJson(content) as Record<string, unknown>;
+  let value: Record<string, unknown>;
+  try {
+    value = extractJson(content) as Record<string, unknown>;
+  } catch {
+    if (activity) throw new Error("Invalid provider selection");
+    const cleaned = content.replace(nonLatin, "").trim();
+    if (!cleaned) throw new Error("Empty provider response");
+    return { answer: cleaned, topic: "unknown" };
+  }
   if (activity) return verifyProviderCiiu(value as Parameters<typeof verifyProviderCiiu>[0], input.profile);
   if (typeof value?.answer === "string" && value.answer.trim()) {
-    const cleanAnswer = value.answer.trim();
-    if (nonLatin.test(cleanAnswer)) throw new Error("Invalid language output");
+    const cleanAnswer = value.answer.replace(nonLatin, "").trim();
+    if (!cleanAnswer) throw new Error("Invalid language output");
     const topic = typeof value.topic === "string" && topics.includes(value.topic) ? value.topic : "unknown";
     return { answer: cleanAnswer, topic };
   }
@@ -176,7 +184,7 @@ export default {
     }
 
     try {
-      const model = env.CREA_ASSISTANT_MODEL || "MiniMax-M3";
+      const model = env.CREA_ASSISTANT_MODEL || "MiniMax-M3.1-Flash";
       const result = await classifyWithMiniMax(parsedInput, env.MINIMAX_API_KEY, model);
       return jsonResponse(200, result, corsOrigin);
     } catch {

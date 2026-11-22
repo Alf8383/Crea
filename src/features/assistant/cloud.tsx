@@ -1,6 +1,6 @@
 "use client";
 
-import { Cloud, Sparkles, X } from "lucide-react";
+import { Check, Cloud, Copy, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
@@ -28,7 +28,7 @@ function contextualHelp(context: Context | null, topic?: AssistantTopic) {
 }
 const subscribeToHydration = () => () => {};
 const Register = createContext<(value: Context | null) => void>(() => {});
-type Message = { question: string; answer?: string; topic?: AssistantTopic; context?: string };
+type Message = { question: string; answer?: string; topic?: AssistantTopic; context?: string; durationMs?: number; pending?: boolean };
 
 export function useAssistantContext(context: Context) {
   const register = useContext(Register);
@@ -56,6 +56,8 @@ function CloudChat({ context }: { context: Context | null }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [providerStatus, setProviderStatus] = useState("");
   const button = useRef<HTMLButtonElement>(null);
   const close = useRef<HTMLButtonElement>(null);
@@ -107,7 +109,11 @@ function CloudChat({ context }: { context: Context | null }) {
     }
     const controller = new AbortController();
     request.current = controller;
+    const startedAt = Date.now();
+    setElapsedMs(0);
     setBusy(true);
+    setMessages((previous) => [...previous.slice(-19), { question: value, pending: true }]);
+    const timer = window.setInterval(() => setElapsedMs(Date.now() - startedAt), 100);
     try {
       const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: value }), credentials: "omit", referrerPolicy: "no-referrer", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]) });
@@ -115,15 +121,23 @@ function CloudChat({ context }: { context: Context | null }) {
       const data: unknown = await response.json();
       const suggestion = data && typeof data === "object" && "topic" in data ? data.topic : undefined;
       const answer = data && typeof data === "object" && "answer" in data && typeof data.answer === "string" ? data.answer : undefined;
+      const durationMs = Date.now() - startedAt;
       if (!controller.signal.aborted) {
         const selected = isAssistantTopic(suggestion) ? suggestion : topic;
-        setMessages((previous) => [...previous.slice(-19), { question: value, answer, topic: selected, context: details(selected) }]);
+        setMessages((previous) => [
+          ...previous.slice(0, -1),
+          { question: value, answer, topic: selected, context: details(selected), durationMs },
+        ]);
       }
     } catch {
       if (!controller.signal.aborted) {
-        setMessages((previous) => [...previous.slice(-19), { question: value, topic, context: details(topic) }]);
+        setMessages((previous) => [
+          ...previous.slice(0, -1),
+          { question: value, topic, context: details(topic) },
+        ]);
       }
     } finally {
+      window.clearInterval(timer);
       setBusy(false);
     }
   }
@@ -155,11 +169,34 @@ function CloudChat({ context }: { context: Context | null }) {
               <p className="leading-relaxed">{message.question}</p>
             </div>
             <div className="justify-self-start max-w-[92%] rounded-2xl rounded-bl-sm border border-border/70 bg-muted/60 p-3.5 shadow-xs">
-              {message.answer ? <>
+              {message.pending ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Sparkles className="size-3.5 animate-pulse text-primary" aria-hidden="true" />
+                  <span>Pensando… {(elapsedMs / 1000).toFixed(1)}s</span>
+                </div>
+              ) : message.answer ? <>
                 <p className="leading-relaxed text-foreground">{message.answer}</p>
-                {message.topic && (assistantTopics[message.topic].url.startsWith("/") ?
-                  <Link className="mt-2 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium text-foreground hover:bg-accent" href={assistantTopics[message.topic].url}>Fuente: {assistantTopics[message.topic].source}</Link> :
-                  <a className="mt-2 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium text-foreground hover:bg-accent" href={assistantTopics[message.topic].url} target="_blank" rel="noreferrer">Fuente: {assistantTopics[message.topic].source}</a>)}
+                <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {message.topic && (assistantTopics[message.topic].url.startsWith("/") ?
+                      <Link className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium text-foreground hover:bg-accent" href={assistantTopics[message.topic].url}>Fuente: {assistantTopics[message.topic].source}</Link> :
+                      <a className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium text-foreground hover:bg-accent" href={assistantTopics[message.topic].url} target="_blank" rel="noreferrer">Fuente: {assistantTopics[message.topic].source}</a>)}
+                    {message.durationMs !== undefined && <span className="text-[11px] text-muted-foreground">{(message.durationMs / 1000).toFixed(1)}s</span>}
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Copiar respuesta"
+                    className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-background hover:text-foreground"
+                    onClick={() => {
+                      void navigator.clipboard?.writeText(message.answer ?? "");
+                      setCopiedIndex(index);
+                      window.setTimeout(() => setCopiedIndex((current) => (current === index ? null : current)), 1500);
+                    }}
+                  >
+                    {copiedIndex === index ? <Check className="size-3" /> : <Copy className="size-3" />}
+                    <span>{copiedIndex === index ? "Copiado" : "Copiar"}</span>
+                  </button>
+                </div>
               </> : message.topic ? <>
                 <p className="leading-relaxed text-foreground">{assistantTopics[message.topic].text}</p>
                 {assistantTopics[message.topic].url.startsWith("/") ?
@@ -169,11 +206,6 @@ function CloudChat({ context }: { context: Context | null }) {
               {authorized && message.context && <p className="mt-2.5 border-t border-border/60 pt-2 text-xs text-muted-foreground">{message.context}</p>}
             </div>
           </div>)}
-          {busy && (
-            <div className="justify-self-start rounded-2xl rounded-bl-sm border border-border/70 bg-muted/60 px-3.5 py-2.5 text-xs text-muted-foreground">
-              Pensando…
-            </div>
-          )}
           {providerStatus && <p className="text-xs">{providerStatus}</p>}
         </div>
         <form className="crea-cloud-form" onSubmit={submit}>
