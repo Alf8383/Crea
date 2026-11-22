@@ -83,7 +83,7 @@ export async function classify({ kind, message, profile }, { key, model, provide
   if (provider === "gemini") {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
     const response = await fetcher(endpoint, {
-      method: "POST", signal: AbortSignal.timeout(6000),
+      method: "POST", signal: AbortSignal.timeout(15000),
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: instructions }] },
@@ -171,7 +171,7 @@ export function createAssistantServer({ origin, key, model, provider = "openai",
     } finally {
       running--;
     }
-  }).setTimeout(8500, (socket) => socket.destroy());
+  }).setTimeout(18000, (socket) => socket.destroy());
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
@@ -182,7 +182,7 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
   const openaiKey = process.env.OPENAI_API_KEY;
   const provider = geminiKey ? "gemini" : "openai";
   const key = geminiKey || openaiKey;
-  const model = process.env.CREA_ASSISTANT_MODEL || (provider === "gemini" ? "gemini-2.5-flash" : "");
+  const model = process.env.CREA_ASSISTANT_MODEL || (provider === "gemini" ? "gemini-3.8-flash" : "");
   createAssistantServer({ origin, key, model, provider })
     .listen(port, "127.0.0.1", () => console.log("Asistente CREA disponible en el puerto " + port));
 }
