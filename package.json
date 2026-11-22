@@ -15,6 +15,7 @@
     "test:e2e:firebase": "playwright test --config playwright.firebase.config.ts"
   },
   "dependencies": {
+    "@assistant-ui/react": "^0.15.37",
     "@base-ui/react": "^1.9.0",
     "@fontsource-variable/newsreader": "^5.3.0",
     "@fontsource-variable/nunito": "^5.3.0",

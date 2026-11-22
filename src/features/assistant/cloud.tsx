@@ -1,16 +1,32 @@
 "use client";
 
-import { Check, Cloud, Copy, Sparkles, X } from "lucide-react";
-import Link from "next/link";
+import {
+  ActionBarPrimitive,
+  AssistantRuntimeProvider,
+  ComposerPrimitive,
+  MessagePrimitive,
+  ThreadPrimitive,
+  useAuiState,
+  useLocalRuntime,
+  type ChatModelAdapter,
+} from "@assistant-ui/react";
+import { ArrowDown, Check, Cloud, Copy, RotateCcw, Send, Sparkles, Square, Trash2, X } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useSession } from "@/features/auth/session";
 import { assistantTopics, isAssistantTopic, localAssistantTopic, type AssistantTopic } from "@/lib/assistant-topics";
 import { ciiuCatalog, type CiiuCode } from "@/lib/ciiu-catalog";
 
-type Context = { stage: string; question: string; topics: AssistantTopic[]; stageAnswered: boolean; planning: boolean; code?: CiiuCode; suggestionCode?: CiiuCode };
+type Context = {
+  stage: string;
+  question: string;
+  topics: AssistantTopic[];
+  stageAnswered: boolean;
+  planning: boolean;
+  code?: CiiuCode;
+  suggestionCode?: CiiuCode;
+};
 
 function contextualHelp(context: Context | null, topic?: AssistantTopic) {
   if (topic === "sales" && context?.planning) return "Para tu etapa inicial, registra la estimación como proyección de todo el ejercicio.";
@@ -26,25 +42,104 @@ function contextualHelp(context: Context | null, topic?: AssistantTopic) {
     return "Si aún no confirmaste el código, indica qué actividad predomina: comidas de consumo inmediato, bebidas, eventos puntuales o contratos continuos. Si falta esa información, deja la clasificación pendiente.";
   }
 }
+
 const subscribeToHydration = () => () => {};
 const Register = createContext<(value: Context | null) => void>(() => {});
-type Message = { question: string; answer?: string; topic?: AssistantTopic; context?: string; durationMs?: number; pending?: boolean };
+const endpoint = process.env.NEXT_PUBLIC_CREA_ASSISTANT_URL;
 
-export function useAssistantContext(context: Context) {
+export function useAssistantContext(value: Context) {
   const register = useContext(Register);
+  const key = JSON.stringify(value);
   useEffect(() => {
-    register(context);
+    register(JSON.parse(key) as Context);
     return () => register(null);
-  }, [context, register]);
+  }, [key, register]);
 }
 
 export function AssistantProvider({ children }: { children: ReactNode }) {
   const [context, setContext] = useState<Context | null>(null);
   const { user, loading } = useSession();
-  return <Register.Provider value={setContext}>
-    {children}
-    <CloudChat key={loading ? "loading" : user?.uid ?? "guest"} context={context} />
-  </Register.Provider>;
+  return (
+    <Register.Provider value={setContext}>
+      {children}
+      <CloudChat key={loading ? "loading" : user?.uid ?? "guest"} context={context} />
+    </Register.Provider>
+  );
+}
+
+function ThinkingTimer() {
+  const isRunning = useAuiState((s) => s.thread.isRunning);
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  useEffect(() => {
+    if (!isRunning) {
+      setElapsedMs(0);
+      return;
+    }
+    const startedAt = Date.now();
+    const id = window.setInterval(() => setElapsedMs(Date.now() - startedAt), 100);
+    return () => window.clearInterval(id);
+  }, [isRunning]);
+
+  if (!isRunning) return null;
+  return (
+    <div className="flex items-center gap-2 self-start rounded-2xl rounded-bl-sm border border-border/70 bg-muted/60 px-3.5 py-2 text-xs text-muted-foreground">
+      <Sparkles className="size-3.5 animate-pulse text-primary" aria-hidden="true" />
+      <span>Pensando… {(elapsedMs / 1000).toFixed(1)}s</span>
+    </div>
+  );
+}
+
+function UserMessage() {
+  return (
+    <MessagePrimitive.Root className="flex justify-end">
+      <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-3.5 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-xs">
+        <MessagePrimitive.Parts />
+      </div>
+    </MessagePrimitive.Root>
+  );
+}
+
+function AssistantMessage() {
+  return (
+    <MessagePrimitive.Root className="group flex flex-col items-start gap-1">
+      <div className="max-w-[92%] rounded-2xl rounded-bl-sm border border-border/70 bg-muted/60 px-3.5 py-2.5 text-sm leading-relaxed text-foreground shadow-xs">
+        <MessagePrimitive.Parts />
+      </div>
+      <ActionBarPrimitive.Root
+        hideWhenRunning
+        autohide="not-last"
+        className="flex items-center gap-1 pl-1 text-[11px] text-muted-foreground"
+      >
+        <ActionBarPrimitive.Copy asChild>
+          <button
+            type="button"
+            aria-label="Copiar respuesta"
+            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-muted hover:text-foreground"
+          >
+            <MessagePrimitive.If copied>
+              <Check className="size-3 text-primary" />
+              <span>Copiado</span>
+            </MessagePrimitive.If>
+            <MessagePrimitive.If copied={false}>
+              <Copy className="size-3" />
+              <span>Copiar</span>
+            </MessagePrimitive.If>
+          </button>
+        </ActionBarPrimitive.Copy>
+        <ActionBarPrimitive.Reload asChild>
+          <button
+            type="button"
+            aria-label="Regenerar respuesta"
+            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-muted hover:text-foreground"
+          >
+            <RotateCcw className="size-3" />
+            <span>Reintentar</span>
+          </button>
+        </ActionBarPrimitive.Reload>
+      </ActionBarPrimitive.Root>
+    </MessagePrimitive.Root>
+  );
 }
 
 function CloudChat({ context }: { context: Context | null }) {
@@ -53,185 +148,232 @@ function CloudChat({ context }: { context: Context | null }) {
   const restricted = path === "/investigacion" || path.startsWith("/investigacion/");
   const [open, setOpen] = useState(false);
   const [authorized, setAuthorized] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [question, setQuestion] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [elapsedMs, setElapsedMs] = useState(0);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [providerStatus, setProviderStatus] = useState("");
-  const button = useRef<HTMLButtonElement>(null);
+  const [threadKey, setThreadKey] = useState(0);
   const close = useRef<HTMLButtonElement>(null);
-  const request = useRef<AbortController | null>(null);
-  const scroll = useRef<HTMLDivElement>(null);
-  const endpoint = process.env.NEXT_PUBLIC_CREA_ASSISTANT_URL;
+  const button = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
 
   useEffect(() => {
     if (open) close.current?.focus();
-  }, [open, restricted]);
-
-  useEffect(() => {
-    if (restricted) request.current?.abort();
-  }, [restricted]);
-
-  useEffect(() => () => request.current?.abort(), []);
-
-  useEffect(() => {
-    if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight;
-  }, [messages.length]);
-
-  function dismiss() {
-    setOpen(false);
-    button.current?.focus();
-  }
+    else if (wasOpen.current) button.current?.focus();
+    wasOpen.current = open;
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    function escape(event: KeyboardEvent) {
-      if (event.key === "Escape" && !event.defaultPrevented) {
-        setOpen(false);
-        button.current?.focus();
-      }
-    }
-    document.addEventListener("keydown", escape);
-    return () => document.removeEventListener("keydown", escape);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  async function ask(input: string, explicitTopic?: AssistantTopic) {
-    const value = input.trim();
-    if (!value || restricted || busy) return;
-    const topic = explicitTopic ?? localAssistantTopic(value);
-    const details = (chosen?: AssistantTopic) => authorized ? contextualHelp(context, chosen) : undefined;
-    setQuestion("");
-    setProviderStatus("");
-    if (explicitTopic || !endpoint) {
-      setMessages((previous) => [...previous.slice(-19), { question: value, topic, context: details(topic) }]);
-      return;
-    }
-    const controller = new AbortController();
-    request.current = controller;
-    const startedAt = Date.now();
-    setElapsedMs(0);
-    setBusy(true);
-    setMessages((previous) => [...previous.slice(-19), { question: value, pending: true }]);
-    const timer = window.setInterval(() => setElapsedMs(Date.now() - startedAt), 100);
-    try {
-      const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: value }), credentials: "omit", referrerPolicy: "no-referrer", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]) });
-      if (!response.ok) throw new Error("Assistant unavailable");
-      const data: unknown = await response.json();
-      const suggestion = data && typeof data === "object" && "topic" in data ? data.topic : undefined;
-      const answer = data && typeof data === "object" && "answer" in data && typeof data.answer === "string" ? data.answer : undefined;
-      const durationMs = Date.now() - startedAt;
-      if (!controller.signal.aborted) {
-        const selected = isAssistantTopic(suggestion) ? suggestion : topic;
-        setMessages((previous) => [
-          ...previous.slice(0, -1),
-          { question: value, answer, topic: selected, context: details(selected), durationMs },
-        ]);
-      }
-    } catch {
-      if (!controller.signal.aborted) {
-        setMessages((previous) => [
-          ...previous.slice(0, -1),
-          { question: value, topic, context: details(topic) },
-        ]);
-      }
-    } finally {
-      window.clearInterval(timer);
-      setBusy(false);
-    }
-  }
+  const adapter = useMemo<ChatModelAdapter>(
+    () => ({
+      async run({ messages, abortSignal }) {
+        const lastUser = [...messages].reverse().find((m) => m.role === "user");
+        const query = lastUser?.content
+          .filter((part): part is { type: "text"; text: string } => part.type === "text")
+          .map((part) => part.text)
+          .join(" ")
+          .trim() ?? "";
 
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    void ask(question);
-  }
+        const fallbackTopic = localAssistantTopic(query);
+        const contextNote = authorized ? contextualHelp(context, fallbackTopic) : undefined;
 
-  const topics = context?.topics.length ? context.topics : ["ciiu", "sales", "tax"] as const;
+        if (!endpoint) {
+          const text = fallbackTopic
+            ? `${assistantTopics[fallbackTopic].text}${contextNote ? `\n\n${contextNote}` : ""}`
+            : "No encontré una explicación verificada para esa consulta. Prueba las sugerencias o consulta las guías oficiales.";
+          return { content: [{ type: "text", text }] };
+        }
 
-  return <div className="crea-cloud print-hidden">
-    {open && <section id="crea-cloud-panel" className="crea-cloud-panel" role="dialog" aria-labelledby="crea-cloud-title">
-      <header className="crea-cloud-head">
-        <div><h2 id="crea-cloud-title">CREA IA</h2><p>Orientación gastronómica</p></div>
-        <Button ref={close} size="icon" variant="ghost" aria-label="Cerrar CREA IA" onClick={dismiss}><X aria-hidden="true" /></Button>
-      </header>
-      {restricted ? <p className="p-5">La asistencia está deshabilitada en el módulo de investigación para proteger las respuestas del pretest y el postest.</p> : <>
-        <div ref={scroll} className="crea-cloud-log" role="log" aria-label="Conversación" aria-live="polite" tabIndex={0}>
-          {context && <p className="text-sm"><strong>{context.stage}</strong><br />{context.question}</p>}
-          {messages.length === 0 && (
-            <div className="rounded-2xl border border-border/60 bg-muted/40 p-3.5 text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">¡Hola! Soy CREA IA.</p>
-              <p className="mt-1">Pregúntame sobre RUC, regímenes tributarios, CIIU o formalización en Cajamarca. Evita incluir claves o datos personales.</p>
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: query }),
+            credentials: "omit",
+            referrerPolicy: "no-referrer",
+            signal: AbortSignal.any([abortSignal, AbortSignal.timeout(15000)]),
+          });
+          if (!response.ok) throw new Error("Assistant unavailable");
+          const data = (await response.json()) as { answer?: string; topic?: string };
+          const topic = isAssistantTopic(data.topic) ? data.topic : fallbackTopic;
+          const extra = authorized ? contextualHelp(context, topic) : undefined;
+          const baseText =
+            typeof data.answer === "string" && data.answer.trim()
+              ? data.answer.trim()
+              : topic
+                ? assistantTopics[topic].text
+                : "No pude generar una respuesta en este momento. Intenta reformular tu pregunta.";
+          const sourceLine = topic ? `\n\nFuente: ${assistantTopics[topic].source}` : "";
+          const contextLine = extra ? `\n\n${extra}` : "";
+          return { content: [{ type: "text", text: `${baseText}${sourceLine}${contextLine}` }] };
+        } catch {
+          const text = fallbackTopic
+            ? `${assistantTopics[fallbackTopic].text}${contextNote ? `\n\n${contextNote}` : ""}`
+            : "El asistente no pudo responder en este momento. Intenta nuevamente en unos segundos.";
+          return { content: [{ type: "text", text }] };
+        }
+      },
+    }),
+    [authorized, context],
+  );
+
+  const runtime = useLocalRuntime(adapter);
+  const topics = context?.topics.length ? context.topics : (["ciiu", "sales", "tax"] as const);
+
+  return (
+    <div className="crea-cloud print-hidden">
+      {open && (
+        <section
+          id="crea-cloud-panel"
+          className="crea-cloud-panel"
+          role="dialog"
+          aria-labelledby="crea-cloud-title"
+        >
+          <header className="crea-cloud-head">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Sparkles className="size-4" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 id="crea-cloud-title">CREA IA</h2>
+                <p>Orientación gastronómica</p>
+              </div>
             </div>
-          )}
-          {messages.map((message, index) => <div className="grid gap-2.5 text-sm" key={index}>
-            <div className="justify-self-end max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-3.5 py-2.5 text-primary-foreground shadow-xs">
-              <p className="leading-relaxed">{message.question}</p>
+            <div className="flex items-center gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Nueva conversación"
+                onClick={() => setThreadKey((k) => k + 1)}
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+              </Button>
+              <Button ref={close} size="icon" variant="ghost" aria-label="Cerrar CREA IA" onClick={() => setOpen(false)}>
+                <X aria-hidden="true" />
+              </Button>
             </div>
-            <div className="justify-self-start max-w-[92%] rounded-2xl rounded-bl-sm border border-border/70 bg-muted/60 p-3.5 shadow-xs">
-              {message.pending ? (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Sparkles className="size-3.5 animate-pulse text-primary" aria-hidden="true" />
-                  <span>Pensando… {(elapsedMs / 1000).toFixed(1)}s</span>
-                </div>
-              ) : message.answer ? <>
-                <p className="leading-relaxed text-foreground">{message.answer}</p>
-                <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {message.topic && (assistantTopics[message.topic].url.startsWith("/") ?
-                      <Link className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium text-foreground hover:bg-accent" href={assistantTopics[message.topic].url}>Fuente: {assistantTopics[message.topic].source}</Link> :
-                      <a className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium text-foreground hover:bg-accent" href={assistantTopics[message.topic].url} target="_blank" rel="noreferrer">Fuente: {assistantTopics[message.topic].source}</a>)}
-                    {message.durationMs !== undefined && <span className="text-[11px] text-muted-foreground">{(message.durationMs / 1000).toFixed(1)}s</span>}
-                  </div>
-                  <button
-                    type="button"
-                    aria-label="Copiar respuesta"
-                    className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-background hover:text-foreground"
-                    onClick={() => {
-                      void navigator.clipboard?.writeText(message.answer ?? "");
-                      setCopiedIndex(index);
-                      window.setTimeout(() => setCopiedIndex((current) => (current === index ? null : current)), 1500);
+          </header>
+
+          {restricted ? (
+            <p className="p-5 text-sm">
+              La asistencia está deshabilitada en el módulo de investigación para proteger las respuestas del pretest y el postest.
+            </p>
+          ) : (
+            <AssistantRuntimeProvider key={threadKey} runtime={runtime}>
+              <ThreadPrimitive.Root className="flex min-h-0 flex-1 flex-col">
+                <ThreadPrimitive.Viewport className="crea-cloud-log relative flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+                  {context && (
+                    <div className="rounded-xl border border-border/60 bg-background/80 p-3 text-xs text-muted-foreground">
+                      <strong className="text-foreground">{context.stage}</strong>
+                      <p className="mt-0.5">{context.question}</p>
+                    </div>
+                  )}
+
+                  <ThreadPrimitive.Empty>
+                    <div className="rounded-2xl border border-border/60 bg-muted/40 p-3.5 text-sm text-muted-foreground">
+                      <p className="font-medium text-foreground">¡Hola! Soy CREA IA.</p>
+                      <p className="mt-1">
+                        Pregúntame sobre RUC, regímenes tributarios, CIIU o formalización en Cajamarca. Evita incluir claves o datos personales.
+                      </p>
+                    </div>
+                  </ThreadPrimitive.Empty>
+
+                  <ThreadPrimitive.Messages
+                    components={{
+                      UserMessage,
+                      AssistantMessage,
                     }}
-                  >
-                    {copiedIndex === index ? <Check className="size-3" /> : <Copy className="size-3" />}
-                    <span>{copiedIndex === index ? "Copiado" : "Copiar"}</span>
-                  </button>
+                  />
+
+                  <ThinkingTimer />
+
+                  <ThreadPrimitive.ScrollToBottom asChild>
+                    <button
+                      type="button"
+                      aria-label="Ir al final"
+                      className="sticky bottom-1 self-center rounded-full border border-border bg-background/95 p-1.5 shadow-sm hover:bg-accent"
+                    >
+                      <ArrowDown className="size-3.5" />
+                    </button>
+                  </ThreadPrimitive.ScrollToBottom>
+                </ThreadPrimitive.Viewport>
+
+                <div className="crea-cloud-form">
+                  <div className="flex flex-wrap gap-1.5">
+                    {topics.map((topic) => (
+                      <ThreadPrimitive.Suggestion
+                        key={topic}
+                        prompt={assistantTopics[topic].label}
+                        autoSend
+                        asChild
+                      >
+                        <button type="button" className="crea-cloud-chip">
+                          {assistantTopics[topic].label}
+                        </button>
+                      </ThreadPrimitive.Suggestion>
+                    ))}
+                  </div>
+
+                  {context?.stageAnswered && (
+                    <label className="flex items-start gap-2 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={authorized}
+                        onChange={(event) => setAuthorized(event.target.checked)}
+                      />
+                      Usar mi etapa y actividad en esta ayuda local
+                    </label>
+                  )}
+
+                  <ComposerPrimitive.Root className="flex items-center gap-2">
+                    <ComposerPrimitive.Input
+                      placeholder="Escribe tu pregunta…"
+                      aria-label="Pregunta para CREA IA"
+                      maxLength={320}
+                      className="flex-1 rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    <ThreadPrimitive.If running={false}>
+                      <ComposerPrimitive.Send asChild>
+                        <Button type="submit" size="icon" aria-label="Enviar pregunta">
+                          <Send className="size-4" />
+                        </Button>
+                      </ComposerPrimitive.Send>
+                    </ThreadPrimitive.If>
+                    <ThreadPrimitive.If running>
+                      <ComposerPrimitive.Cancel asChild>
+                        <Button type="button" size="icon" variant="outline" aria-label="Detener respuesta">
+                          <Square className="size-3.5 fill-current" />
+                        </Button>
+                      </ComposerPrimitive.Cancel>
+                    </ThreadPrimitive.If>
+                  </ComposerPrimitive.Root>
                 </div>
-              </> : message.topic ? <>
-                <p className="leading-relaxed text-foreground">{assistantTopics[message.topic].text}</p>
-                {assistantTopics[message.topic].url.startsWith("/") ?
-                  <Link className="mt-2 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium text-foreground hover:bg-accent" href={assistantTopics[message.topic].url}>Fuente: {assistantTopics[message.topic].source}</Link> :
-                  <a className="mt-2 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium text-foreground hover:bg-accent" href={assistantTopics[message.topic].url} target="_blank" rel="noreferrer">Fuente: {assistantTopics[message.topic].source}</a>}
-              </> : <p className="leading-relaxed text-muted-foreground">No encontré una explicación verificada para esa consulta. Prueba las sugerencias o consulta las <Link href="/negocios?seccion=orientacion" className="underline">guías oficiales</Link>.</p>}
-              {authorized && message.context && <p className="mt-2.5 border-t border-border/60 pt-2 text-xs text-muted-foreground">{message.context}</p>}
-            </div>
-          </div>)}
-          {providerStatus && <p className="text-xs">{providerStatus}</p>}
-        </div>
-        <form className="crea-cloud-form" onSubmit={submit}>
-          <div className="flex flex-wrap gap-1.5">
-            {topics.map((topic) => <button className="crea-cloud-chip" key={topic} type="button" disabled={busy} onClick={() => void ask(assistantTopics[topic].label, topic)}>{assistantTopics[topic].label}</button>)}
-          </div>
-          {context?.stageAnswered && <label className="flex items-start gap-2 text-xs"><input type="checkbox" checked={authorized} onChange={(event) => {
-            setAuthorized(event.target.checked);
-            if (!event.target.checked) setMessages((previous) => previous.map(({ question, answer, topic }) => ({ question, answer, topic })));
-          }} />Usar mi etapa y actividad en esta ayuda local</label>}
-          <div className="flex gap-2">
-            <Input value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={320} aria-label="Pregunta para CREA IA" placeholder="Escribe tu pregunta" />
-            <Button type="submit" disabled={!question.trim() || busy}>{busy ? "Consultando…" : "Enviar"}</Button>
-          </div>
-          {messages.length > 0 && <button type="button" className="justify-self-start text-xs underline" onClick={() => {
-            request.current?.abort();
-            setMessages([]);
-            setProviderStatus("");
-          }}>Borrar conversación</button>}
-        </form>
-      </>}
-    </section>}
-    <button ref={button} type="button" disabled={!ready} aria-label="CREA IA, asistente de orientación" aria-expanded={open} aria-controls={open ? "crea-cloud-panel" : undefined}
-      className="crea-cloud-trigger" onClick={() => open ? dismiss() : setOpen(true)}>
-      <span className="crea-cloud-icon" aria-hidden="true"><Cloud fill="currentColor" strokeWidth={1.5} /><Sparkles strokeWidth={2} /></span>
-      <span className="crea-cloud-label">CREA IA</span>
-    </button>
-  </div>;
+              </ThreadPrimitive.Root>
+            </AssistantRuntimeProvider>
+          )}
+        </section>
+      )}
+
+      <button
+        ref={button}
+        type="button"
+        disabled={!ready}
+        aria-label="CREA IA, asistente de orientación"
+        aria-expanded={open}
+        aria-controls={open ? "crea-cloud-panel" : undefined}
+        className="crea-cloud-trigger"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="crea-cloud-icon" aria-hidden="true">
+          <Cloud fill="currentColor" strokeWidth={1.5} />
+          <Sparkles strokeWidth={2} />
+        </span>
+        <span className="crea-cloud-label">CREA IA</span>
+      </button>
+    </div>
+  );
 }
