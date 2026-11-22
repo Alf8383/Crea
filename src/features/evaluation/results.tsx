@@ -2,7 +2,9 @@ import { ArrowRight, CheckCircle2, CircleAlert, CircleHelp } from "lucide-react"
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { LinkButton, SourceLink } from "@/components/ui/primitives";
+import { soles } from "@/lib/utils";
 import { sourceById } from "@/lib/seed-catalog";
+import { ciiuCatalog, CIIU_TABLE, isCiiuCode } from "@/lib/ciiu-catalog";
 import type { FullWorkspaceEvaluation } from "@/lib/rule-engine";
 import type { BusinessContext, TaxRecommendation } from "@/lib/types";
 import { assessmentEditHref, assessmentFieldLabels, nextAssessmentGap } from "./assessment";
@@ -10,7 +12,7 @@ import { assessmentEditHref, assessmentFieldLabels, nextAssessmentGap } from "./
 const statuses = {
   COMPATIBLE: { label: "Compatible según tus datos", icon: CheckCircle2, className: "status-compatible" },
   INCOMPATIBLE: { label: "Incompatible", icon: CircleAlert, className: "status-incompatible" },
-  INFORMACION_INSUFICIENTE: { label: "Por confirmar", icon: CircleHelp, className: "status-pending" },
+  INFORMACION_INSUFICIENTE: { label: "Información insuficiente", icon: CircleHelp, className: "status-pending" },
 };
 
 export function RegimeStatus({ status }: { status: TaxRecommendation["status"] }) {
@@ -37,6 +39,7 @@ function RuleDetails({ regime }: { regime: TaxRecommendation }) {
 function RegimeReasons({ regime }: { regime: TaxRecommendation }) {
   const reasons = [...regime.breachedConditions, ...regime.missingDataFields];
   return <>
+    {regime.status === "INFORMACION_INSUFICIENTE" && <p className="text-sm">Este régimen podría corresponderte, pero necesitamos verificar algunos datos.</p>}
     {regime.verification !== "VIGENTE" && <p className="text-sm text-muted-foreground">La fuente requiere una revisión de vigencia.</p>}
     {reasons.length > 0 && <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">{reasons.map((reason, index) => <li key={index}>{reason}</li>)}</ul>}
   </>;
@@ -69,7 +72,10 @@ export function Results({ evaluation, context, workspaceHref, prepareEdit }: {
   const alternatives = regimes.filter((regime) => regime.code !== declared?.code);
   const gap = declared && prepareEdit ? nextAssessmentGap(declared, context) : undefined;
 
-  let summary = current?.declaredRegime === "SIN_REGIMEN"
+  const starting = context.stage === "idea" || context.stage === "preparacion";
+  const originLabels = { real: "Reales declaradas", proyectado: "Proyectadas", declarado: "Montos declarados", desconocido: "Desconocidas" } as const;
+  let summary = starting ? "Revisa las opciones para tu escenario y completa los datos cuando los conozcas."
+    : current?.declaredRegime === "SIN_REGIMEN"
     ? "Indicaste que tu restaurante todavía no tiene un régimen. Revisa qué condiciones cumple según los datos que ingresaste."
     : "Puedes revisar las opciones con tus datos actuales. Si encuentras tu régimen en la ficha RUC, indícalo para evaluarlo directamente.";
   let next = { label: "Revisar opciones evaluadas", href: "#alternativas" };
@@ -89,16 +95,36 @@ export function Results({ evaluation, context, workspaceHref, prepareEdit }: {
 
   return <div className="grid gap-6">
     <Card className="result-overview grid justify-items-start gap-3 p-5 sm:p-7">
-      <p className="eyebrow">{declared ? "Régimen actual declarado" : "Régimen actual"}</p>
-      <h2 className="editorial-title">{current?.regimeName ?? "Régimen por confirmar"}</h2>
+      <p className="eyebrow">{starting ? "Etapa inicial" : declared ? "Régimen actual declarado" : "Régimen actual"}</p>
+      <h2 className="editorial-title">{starting ? "Tu escenario antes de abrir" : current?.regimeName ?? "Régimen por confirmar"}</h2>
       {declared && <RegimeStatus status={declared.status} />}
       <p className="max-w-prose text-foreground">{summary}</p>
       <div className="mt-1 grid justify-items-start gap-2">
         <LinkButton href={next.href} onClick={gap ? prepareEdit : undefined}>{next.label} <ArrowRight aria-hidden="true" /></LinkButton>
-        {!declared && prepareEdit && <Link className="hero-secondary" href={assessmentEditHref("regime")} onClick={prepareEdit}>Indicar mi régimen</Link>}
+        {!starting && context.hasRuc !== false && !declared && prepareEdit && <Link className="hero-secondary" href={assessmentEditHref("regime")} onClick={prepareEdit}>Indicar mi régimen</Link>}
       </div>
     </Card>
 
+    {context.assessmentVersion === 3 && <Card className="grid gap-3 p-5 sm:p-6">
+      <h2 className="text-lg font-bold">Actividad y origen de tus cifras</h2>
+      {isCiiuCode(context.ciiu) ? <>
+        <p><strong>{context.ciiu}</strong> · {ciiuCatalog[context.ciiu].name}</p>
+        {context.ciiuSuggestionSource && <p className="text-sm text-muted-foreground">
+          {context.ciiuSuggestionSource === "ia" ? "Sugerencia de CREA IA confirmada por ti." : "Orientación local del INEI confirmada por ti."}
+        </p>}
+        {(context.ciiuClassification?.secondary.length ?? 0) > 0 && <p className="text-sm">Actividades secundarias · {context.ciiuClassification?.secondary.join(", ")}</p>}
+        <SourceLink href={CIIU_TABLE}>{context.ciiuClassification?.version ?? "Tabla CIIU Rev. 4"}</SourceLink>
+      </> : <p>{context.ciiuStatus === "revision"
+        ? "Clasificación por revisar. Verifica la actividad principal con SUNAT."
+        : "Clasificación pendiente. Puedes volver a describir tu actividad."}</p>}
+      {prepareEdit && <Link className="hero-secondary" href={assessmentEditHref("activity")} onClick={prepareEdit}>
+        {isCiiuCode(context.ciiu) ? "Cambiar actividad" : "Revisar mi actividad"}
+      </Link>}
+      {context.financialOrigins && <dl className="grid gap-2 text-sm sm:grid-cols-2">
+        <div><dt>Ventas</dt><dd className="font-bold">{originLabels[context.financialOrigins.sales]}</dd>{context.typicalMonthlyRevenue !== undefined && <dd>Estimación mensual · {soles(context.typicalMonthlyRevenue)}</dd>}</div>
+        <div><dt>Compras</dt><dd className="font-bold">{originLabels[context.financialOrigins.purchases]}</dd>{context.typicalMonthlyPurchases !== undefined && <dd>Estimación mensual · {soles(context.typicalMonthlyPurchases)}</dd>}</div>
+      </dl>}
+    </Card>}
     {declared && <section id="condiciones" tabIndex={-1} className="flow-anchor grid gap-3">
       <h2 className="editorial-title">Condiciones de tu régimen actual</h2>
       <div className="grid gap-3">
@@ -125,6 +151,7 @@ export function Results({ evaluation, context, workspaceHref, prepareEdit }: {
     <div className="border-t border-border pt-4">
       <p className="text-sm text-muted-foreground">Evaluación del {current?.diagnosticDate} · Catálogo {ruleEngineVersion}</p>
       <div className="flex flex-wrap gap-x-5">
+        <Link className="hero-secondary" href={workspaceHref + "seccion=ruta"}>Ver mi ruta de formalización</Link>
         <Link className="hero-secondary" href={workspaceHref + "seccion=reportes"}>Ver informe y guardar PDF</Link>
         <Link className="hero-secondary" href={workspaceHref + "seccion=simulador"}>Ir al simulador</Link>
         {prepareEdit && <Link className="hero-secondary" href={assessmentEditHref()} onClick={prepareEdit}>Revisar mis datos</Link>}

@@ -1,0 +1,90 @@
+# CREA para negocios gastronómicos en Cajamarca
+
+## Auditoría y recuperación
+
+La rama parte del rediseño de `main` publicado en `aa5ab49`. El árbol coincide con `680db48`, la rama de rediseño que estaba abierta en el equipo. Se revisó el historial del commit `3ce96c5`, fechado el 23 de octubre de 2026. El cuestionario anterior tenía una pregunta de etapa en `P03`, preguntas condicionales sobre operación y formalización, ventas estimadas y una calculadora por producto en la portada. El panel anterior combinaba trámite, clasificación y simulación.
+
+Se recuperaron esos recorridos en el cuestionario y espacio de trabajo actuales, con los componentes compartidos de Next.js, Base UI y Tailwind. El motor, la autenticación y el guardado explícito en Firebase siguen siendo los puntos de entrada del diagnóstico y la persistencia. Las fichas anteriores se pueden abrir y editar. Cambiar la etapa habilita los datos nuevos sin asignar un CIIU por similitud textual.
+
+## Recorrido
+
+1. Elige si tienes una idea, estás preparando el negocio, ya operas o estás formalizado. Si aún no inicias, el formulario ofrece proyecciones y datos desconocidos. Cuando ya operas, pregunta por la inscripción y muestra el régimen si procede.
+2. Describe qué ofreces, distingue la actividad principal y confirma el CIIU. El catálogo incluido abarca siete clases gastronómicas de la revisión 4 del INEI. Palabras clave o un modelo pueden sugerir candidatos. Las respuestas sobre operación y la confirmación del usuario controlan qué código se registra. Para actividades que requieren una clase fuera del catálogo, el resultado queda pendiente.
+3. Indica de dónde vienen las ventas y las compras. Usa la calculadora para sumar productos, pedidos diarios, días de atención y temporadas. Puedes transferir la venta bruta anual y el mes de mayor venta al formulario, o elegir el mes que quieres llevar al simulador. Si indicas qué IGV está incluido en los precios, el formulario también puede calcular las ventas netas.
+4. Revisa el resumen y cada condición del Nuevo RUS, RER, RMT y Régimen General. El Nuevo RUS usa ventas y adquisiciones brutas. El RER y el RMT usan ingresos netos, y las compras del RER excluyen activos fijos. Las reglas de domicilio, actividades excluidas y el límite del ejercicio anterior del RMT tienen referencias propias.
+5. Abre la ruta de formalización. La ubicación, el tipo de persona, el CIIU, el local, su clasificación de riesgo y los trabajadores determinan los pasos. El checklist conserva su avance por evaluación y cuenta en la pestaña. Para explorar sin datos reales, abre `Ejemplos`.
+
+El diagnóstico se limita al ejercicio 2026. Los cálculos de impuestos son estimaciones de un escenario mensual, con supuestos visibles para compras acreditables, tasa especial y anticipos. La compatibilidad se evalúa aparte con los datos del ejercicio y el catálogo versionado.
+
+## Archivos principales
+
+| Función | Archivos |
+| --- | --- |
+| Nube y ayuda contextual | `src/app/layout.tsx`, `src/features/assistant/cloud.tsx`, `src/lib/assistant-topics.ts` |
+| Cuestionario y CIIU | `src/features/evaluation/assessment.ts`, `business-wizard.tsx`, `classification.tsx`, `src/lib/ciiu-catalog.ts` |
+| Motor y reporte | `src/lib/rule-engine.ts`, `seed-catalog.ts`, `report-generator.ts` |
+| Proyección y simulación | `src/lib/sales-projection.ts`, `tax-simulator.ts`, `src/features/workspace/projection-calculator.tsx` |
+| Ruta de formalización | `src/lib/formalization.ts`, `src/features/workspace/formalization-route.tsx` |
+| Ejemplos | `src/lib/demo-presets.ts`, `src/features/workspace/examples.tsx` |
+| Integración opcional de modelo | `server/assistant.mjs` |
+
+## Fuentes contrastadas
+
+- CIIU Rev. 4, notas de la división 56 y clases de elaboración incorporadas. [Manual del INEI](https://www.inei.gob.pe/media/MenuRecursivo/publicaciones_digitales/Est/Lib0883/Libro.pdf) · [Tabla oficial](https://cdn.www.gob.pe/uploads/document/file/1348266/Tabla_Oficial_CIIU_Rev4.pdf).
+- Condiciones, topes y actividades excluidas. [Nuevo RUS](https://emprender.sunat.gob.pe/ruc/regimenes-tributarios-mype/nuevo-regimen-unico-simplificado-nuevo-rus) · [RER](https://emprender.sunat.gob.pe/ruc/regimenes-tributarios-mype/regimen-especial-renta-rer) · [D. Leg. 1269](https://www.sunat.gob.pe/legislacion/mypeIR/dl1269.pdf) · [Comparación SUNAT](https://emprender.sunat.gob.pe/ruc/regimenes-tributarios-mype/regimenes-tributarios).
+- UIT y tasas del ejercicio. [MEF, UIT 2026](https://www.gob.pe/institucion/mef/noticias/1314665-mef-establece-en-s-5500-el-valor-de-la-uit-para-el-ano-2026) · [SUNAT, reducción del IGV](https://orientacion.sunat.gob.pe/reduccion-del-igv-para-restaurantes-hoteles-y-alojamiento-turisticos-1).
+- Trámites y condiciones sanitarias. [Ordenanza de licencias de Cajamarca](https://www.gob.pe/institucion/municajamarca/normas-legales/5518154-om_895-2024) · [ITSE previa para riesgo alto o muy alto](https://www.gob.pe/20866-obtener-licencia-de-funcionamiento-para-negocios-de-riesgo-alto-o-muy-alto) · [MINSA, restaurantes y afines](https://www.digesa.minsa.gob.pe/normaslegales/normas/rm_822-2018-minsa.pdf) · [MINSA, alimentación colectiva](https://www.gob.pe/institucion/minsa/normas-legales/1635426-157-2021-minsa) · [DIGESA, registro sanitario](https://www.digesa.minsa.gob.pe/Orientacion/REGISTRO_SANITARIO.pdf).
+
+## Verificación local
+
+Instala dependencias con `pnpm install --frozen-lockfile` y ejecuta `pnpm dev`. Para probar sin Firebase, configura `NEXT_PUBLIC_CREA_DEMO=true` en `.env.local`. Abre [CREA en localhost](http://localhost:3000), inicia una evaluación y recorre el diagnóstico, el simulador, la formalización, los reportes y las guías.
+
+La nube funciona con contenido local verificado. La ayuda del espacio de trabajo usa recuperación de fragmentos de SUNAT y datos del diagnóstico procesados en el navegador. La conversación de la nube permanece en memoria durante la navegación y permite borrarla. El módulo de investigación muestra la nube con la asistencia deshabilitada. No se adjuntó el protocolo aprobado para un contraste metodológico. Se conservaron la configuración de 36 participantes y 18 preguntas, el instrumento y las reglas de Firestore.
+
+### Probar CREA IA para la clasificación CIIU
+
+1. Usa Node.js 24 y configura el backend con `CREA_ASSISTANT_ORIGIN` igual al origen exacto de la vista web, por ejemplo `http://127.0.0.1:3196`. Define `CREA_ASSISTANT_MODEL` con un modelo de OpenAI habilitado para Responses API y salidas estructuradas. Guarda `OPENAI_API_KEY` solo en el entorno del servidor.
+2. Configura `NEXT_PUBLIC_CREA_ASSISTANT_URL=http://127.0.0.1:3200/api/crea-assistant` y ejecuta `pnpm assistant` en otra terminal. Reinicia el servidor web si cambiaste la URL. En un entorno alojado, publica el backend existente por HTTPS y configura su origen exacto. La exportación estática de Next.js solo necesita la URL pública, sin claves.
+3. En el cuestionario, autoriza compartir el perfil y elige «Identificar mi actividad con CREA IA». Se envía la descripción escrita y las opciones de establecimiento, modalidad y clientes. Evita datos identificables. También puedes usar la orientación local sin compartir el perfil.
+
+El mismo adaptador sirve la nube y la clasificación. La clasificación solicita una propuesta estructurada con una clase principal, hasta dos secundarias, una aclaración opcional o un estado de revisión. El servidor valida códigos permitidos, combinaciones y extractos presentes en el texto. Los nombres, enlaces y explicaciones se obtienen del catálogo local. El modelo se solicita con `store: false`.
+
+CREA identifica si la sugerencia proviene del proveedor o del catálogo local. Si no hay proveedor, falla o alcanza el límite, el catálogo local guía la evaluación con hasta dos aclaraciones. Un código sugerido se incorpora a la actividad económica cuando el usuario lo confirma de forma expresa. Los instrumentos de investigación mantienen su flujo y restricciones de asistencia.
+
+
+```powershell
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm test:assistant
+pnpm build
+pnpm exec playwright install chromium
+pnpm test:e2e --timeout=90000
+pnpm dlx firebase-tools emulators:exec --only auth,firestore --project demo-crea "pnpm test:rules && pnpm test:e2e:firebase --timeout=360000"
+```
+
+Los recorridos del emulador crean y califican participantes ficticios en el proyecto local `demo-crea`. Usa un emulador aislado. Si el puerto predeterminado de Firestore está ocupado, cambia el puerto en una copia local de `firebase.json` y pásala a `emulators:exec` con `--config`. El comando comunica el puerto a las pruebas a través de `FIRESTORE_EMULATOR_HOST`. Si el servidor web de pruebas ya está iniciado con la configuración del emulador, `CREA_FIREBASE_E2E_URL` permite reutilizarlo con una URL local.
+
+## Resultados de la verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `pnpm typecheck` y `pnpm lint` | Completados correctamente. |
+| `pnpm test` | 37 pruebas aprobadas. |
+| `pnpm test:assistant` | 3 casos aprobados con respuestas simuladas del proveedor. Incluyen el modo sin proveedor, el rechazo de datos no admitidos y los límites de frecuencia. |
+| `pnpm build` | 21 páginas generadas para el sitio estático. |
+| `pnpm test:e2e` | 33 casos aprobados sobre la exportación estática, en escritorio, tableta y móvil. Incluye auditorías Axe y navegación por teclado. Se repitió el caso de la primera etapa en los tres tamaños tras el ajuste de espacio de la nube. |
+| `pnpm test:rules` | 3 casos aprobados en Firestore Emulator. |
+| `pnpm test:e2e:firebase` | 1 recorrido aprobado con Auth y Firestore en el proyecto local `demo-crea`. Cubre registro, acceso administrativo, persistencia de una evaluación, pretest, postest, restricción del asistente y exportación CSV con datos ficticios. |
+
+Se comprobó también que el panel abierto conserva su conversación al cambiar de ruta, que el movimiento reducido desactiva su animación y que la nube deja espacio para los botones del cuestionario en los tamaños verificados.
+
+## Cuestionario para el distrito de Cajamarca
+
+El recorrido inicia con el tipo de establecimiento y pide una sola descripción. El tipo identifica el formato del negocio y no confirma la clase CIIU. La descripción y la modalidad ordenan las opciones del catálogo del INEI. El recorrido evita volver a preguntar la modalidad principal para cocinas exclusivamente de delivery y puestos móviles. La clasificación requiere confirmación expresa o puede quedar pendiente.
+
+Las evaluaciones generadas con el formulario usan Cajamarca como departamento, provincia y distrito. La ruta municipal remite a la Municipalidad Provincial de Cajamarca. Los borradores anteriores conservan las respuestas vigentes al retomarlos y solicitan el tipo de establecimiento si todavía falta. Las evaluaciones históricas se conservan como se guardaron hasta que el usuario decide editarlas.
+
+El RUC se consulta para negocios que ya operan. La inscripción societaria se consulta a personas jurídicas en preparación o en funcionamiento. Los canales de pedidos y los datos sobre cocina son opcionales. El formulario consulta los canales si se reciben pedidos digitales. La ruta usa los equipos y el humo declarado para ayudar a preparar la consulta municipal. El nivel de riesgo sigue siendo el declarado como asignado por la municipalidad.
+
+La calculadora admite cantidades mensuales por plato, bebida o servicio y mantiene el cálculo por pedidos diarios y los ajustes estacionales. El resultado conserva la distinción entre ingresos brutos, ingresos netos, máximos mensuales y cifras pendientes. Los regímenes se calculan con las mismas reglas y topes.

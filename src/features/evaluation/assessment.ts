@@ -1,11 +1,61 @@
 import { z } from "zod";
-import type { BusinessContext, TaxRecommendation } from "@/lib/types";
+import type { BusinessContext, FinancialOrigin, TaxRecommendation } from "@/lib/types";
+import { ciiuCodes, confirmedClassification, isCiiuCode, readCiiuSnapshot } from "@/lib/ciiu-catalog";
 import { NRUS_ANNUAL_LIMIT, NRUS_MONTHLY_LIMIT_CAT2, RER_ANNUAL_INCOME_LIMIT, RER_ANNUAL_PURCHASES_LIMIT, RER_ASSETS_LIMIT, RMT_INCOME_LIMIT_2026 } from "@/lib/tax-constants";
+
+export const cajamarcaLocation = { department: "Cajamarca", province: "Cajamarca", district: "Cajamarca" } as const;
+export const establishments = [
+  ["restaurante", "Restaurante", ""], ["cafeteria", "Cafetería", ""], ["polleria", "Pollería", ""],
+  ["cevicheria", "Cevichería", ""], ["pizzeria", "Pizzería", ""], ["menu", "Restaurante de menú o comida casera", ""],
+  ["rapida", "Comida rápida", ""], ["delivery", "Cocina exclusiva para delivery", ""],
+  ["eventos", "Servicio de comidas para eventos", ""], ["movil", "Food truck o puesto móvil", ""], ["otro", "Otro establecimiento gastronómico similar", ""],
+] as const;
+export const digitalChannels = [
+  ["whatsapp", "WhatsApp"], ["redes", "Facebook, Instagram u otras redes sociales"],
+  ["apps", "Aplicaciones de delivery"], ["web", "Página web propia"], ["otro", "Otro"], ["unknown", "Todavía no lo sé"],
+] as const;
+export const kitchenEquipment = [
+  ["gas", "Cocina a gas"], ["electric", "Cocina eléctrica o de inducción"],
+  ["oven", "Hornos, parrillas o freidoras"], ["solid", "Equipos que utilizan carbón o leña"], ["unknown", "Todavía no lo sé"],
+] as const;
+
+export function selectionOptions(value: string, options: readonly (readonly [string, string])[]) {
+  const selected = value.split(",");
+  return options.filter(([key]) => selected.includes(key));
+}
 
 export const registration = [
   ["natural", "A mi nombre", "Persona natural con negocio"],
   ["juridica", "Como empresa", "Persona jurídica"],
   ["aun-no-se", "No lo sé", ""],
+] as const;
+
+export const stages = [
+  ["idea", "Solo tengo una idea", "Explora opciones con datos que puedas proyectar."],
+  ["preparacion", "Estoy preparando mi negocio", "Planea los trámites antes de abrir."],
+  ["operando", "Ya estoy vendiendo, pero tengo trámites pendientes", "Identifica qué trámites faltan."],
+  ["formalizado", "Mi negocio ya está formalizado", "Revisa tu régimen y obligaciones."],
+] as const;
+export const origins = [
+  ["real", "Datos reales del ejercicio", ""],
+  ["proyectado", "Proyección del ejercicio", ""],
+  ["desconocido", "Todavía no tengo cifras", ""],
+] as const;
+export const modes = [
+  ["local", "En un local donde atenderé clientes", ""],
+  ["recojo", "Para llevar", ""],
+  ["delivery", "En una cocina exclusiva para pedidos o delivery", ""],
+  ["eventos", "Preparación de comidas para eventos o por contrato", ""],
+  ["movil", "En un puesto móvil", ""],
+  ["desconocido", "Todavía no lo sé", ""],
+] as const;
+export const customers = [
+  ["personas", "Personas", ""], ["empresas", "Empresas o instituciones", ""],
+  ["ambos", "Personas y empresas", ""], ["aun-no-se", "Todavía no lo sé", ""],
+] as const;
+export const risks = [
+  ["bajo-medio", "Bajo o medio", ""], ["alto", "Alto o muy alto", ""],
+  ["desconocido", "No conozco la clasificación", ""],
 ] as const;
 
 export const activities = [
@@ -23,7 +73,7 @@ export const regimes = [
   ["DESCONOCIDO", "No lo sé"],
 ] as const;
 
-export const choices = [["yes", "Sí", ""], ["no", "No", ""], ["unknown", "No lo sé", ""]] as const;
+export const choices = [["yes", "Sí", ""], ["no", "No", ""], ["unknown", "Todavía no lo sé", ""]] as const;
 
 const amountText = z.string().refine((value) => value === "" || (
   /^\d+(?:[.,]\d{1,2})?$/.test(value) && Number(value.replace(",", ".")) <= 999999999999
@@ -31,8 +81,38 @@ const amountText = z.string().refine((value) => value === "" || (
 const countText = z.string().refine((value) => value === "" || /^\d{1,5}$/.test(value), "Ingresa un número entero entre 0 y 99 999.");
 const yesNo = z.enum(["yes", "no", "unknown", ""]);
 const draftSchema = z.object({
+  establishment: z.enum(["", ...establishments.map(([key]) => key)]),
+  onlineOrders: yesNo,
+  channels: z.string().max(60),
+  equipment: z.string().max(60),
+  smoke: yesNo,
+  constituted: yesNo,
   name: z.string().trim().max(100),
-  activity: z.enum(["restaurante", "catering", "unknown", ""]),
+  stage: z.enum(["idea", "preparacion", "operando", "formalizado", ""]),
+  description: z.string().trim().max(500),
+  activity: z.enum([...ciiuCodes, "restaurante", "catering", "unknown", "review", ""]),
+  activityAnalysis: z.string().max(700),
+  activityEvidence: z.enum([...ciiuCodes, "unknown", ""]),
+  secondary: z.string().max(40),
+  salesOrigin: z.enum(["real", "proyectado", "declarado", "desconocido", ""]),
+  purchasesOrigin: z.enum(["real", "proyectado", "declarado", "desconocido", ""]),
+  typicalSales: amountText,
+  typicalPurchases: amountText,
+  grossAnnualSales: amountText,
+  grossPurchases: amountText,
+  workforce: yesNo,
+  domicile: yesNo,
+  priorRmt: yesNo,
+  partners: countText,
+  mode: z.enum(["local", "recojo", "delivery", "eventos", "movil", "desconocido", ""]),
+  fixedPlace: yesNo,
+  customers: z.enum(["personas", "empresas", "ambos", "aun-no-se", ""]),
+  rucStatus: yesNo,
+  risk: z.enum(["bajo-medio", "alto", "desconocido", ""]),
+  license: yesNo,
+  itse: yesNo,
+  nrusRestriction: yesNo,
+  rerRestriction: yesNo,
   legal: z.enum(["natural", "juridica", "aun-no-se", ""]),
   regime: z.enum(["NRUS", "RER", "RMT", "RG", "SIN_REGIMEN", "DESCONOCIDO", ""]),
   invoice: yesNo,
@@ -50,13 +130,59 @@ const draftSchema = z.object({
 export type AssessmentDraft = z.infer<typeof draftSchema>;
 
 export const emptyDraft: AssessmentDraft = {
-  name: "", activity: "", legal: "", regime: "", invoice: "",
+  establishment: "", onlineOrders: "", channels: "", equipment: "", smoke: "", constituted: "",
+  name: "", activity: "", activityAnalysis: "", legal: "", regime: "", invoice: "",
+  stage: "", description: "", activityEvidence: "", secondary: "",
+  typicalSales: "", typicalPurchases: "",
+  salesOrigin: "", purchasesOrigin: "", grossAnnualSales: "", grossPurchases: "", workforce: "", domicile: "", priorRmt: "",
+  partners: "", mode: "", fixedPlace: "", customers: "", rucStatus: "",
+  risk: "", license: "", itse: "", nrusRestriction: "", rerRestriction: "",
   annualSales: "", annualPurchases: "", maxMonthlySales: "", maxMonthlyPurchases: "",
   assets: "", workers: "", locations: "", linkage: "", foreignBranch: "",
 };
 
+export function restoreAssessmentDraft(saved?: Partial<AssessmentDraft>): AssessmentDraft {
+  const draft = { ...emptyDraft };
+  if (!saved) return draft;
+  for (const field of Object.keys(draft) as (keyof AssessmentDraft)[]) {
+    const value = saved[field];
+    if (typeof value === "string") Object.assign(draft, { [field]: value });
+  }
+  return draft;
+}
+
 export type AssessmentField = keyof AssessmentDraft;
 export const assessmentFieldLabels: Record<AssessmentField, string> = {
+  stage: "Etapa del negocio",
+  description: "Descripción del negocio",
+  activityAnalysis: "Sugerencia CIIU",
+  activityEvidence: "Modalidad de la actividad",
+  secondary: "Actividades secundarias",
+  typicalSales: "Ventas habituales al mes",
+  typicalPurchases: "Compras habituales al mes",
+  salesOrigin: "Origen de las ventas",
+  purchasesOrigin: "Origen de las compras",
+  grossAnnualSales: "Ingresos brutos anuales",
+  grossPurchases: "Compras brutas anuales",
+  workforce: "Personal dependiente",
+  domicile: "Domicilio fiscal en Perú",
+  priorRmt: "Ingresos del ejercicio anterior",
+  establishment: "Tipo de establecimiento",
+  onlineOrders: "Pedidos por medios digitales",
+  channels: "Medios para recibir pedidos",
+  equipment: "Equipos de cocina",
+  smoke: "Humo, vapor o grasa",
+  constituted: "Constitución inscrita en SUNARP",
+  partners: "Cantidad de socios",
+  mode: "Lugar principal del negocio",
+  fixedPlace: "Establecimiento fijo",
+  customers: "Tipo de clientes",
+  rucStatus: "Inscripción en el RUC",
+  risk: "Nivel de riesgo municipal",
+  license: "Licencia municipal",
+  itse: "Certificado ITSE",
+  nrusRestriction: "Actividades excluidas del Nuevo RUS",
+  rerRestriction: "Actividades excluidas del RER",
   regime: "Régimen actual",
   activity: "Actividad del negocio",
   legal: "Tipo de registro",
@@ -73,27 +199,67 @@ export const assessmentFieldLabels: Record<AssessmentField, string> = {
   name: "Nombre del restaurante",
 };
 const required = ["regime", "activity", "legal", "invoice"] as const;
+export const routeAssessmentFields = ["risk", "license", "itse", "equipment", "smoke", "workforce", "constituted"] as const;
+
 export const assessmentFields = [
-  required,
-  ["annualSales", "annualPurchases", "maxMonthlySales", "maxMonthlyPurchases"],
-  ["locations", "assets", "workers", "foreignBranch", "linkage"],
+  ["stage", "establishment", "description", "activity", "legal", "invoice", "typicalSales", "typicalPurchases", "mode", "rucStatus", "regime", ...routeAssessmentFields],
+  ["salesOrigin", "annualSales", "grossAnnualSales", "maxMonthlySales", "annualPurchases", "grossPurchases", "maxMonthlyPurchases"],
+  ["locations", "assets", "workers", "nrusRestriction", "rerRestriction", "foreignBranch", "linkage", "domicile", "priorRmt"],
   ["name"],
 ] as const;
 
-export function relevantAssessmentFields(draft: AssessmentDraft) {
+export function declaredMode(draft: AssessmentDraft): AssessmentDraft["mode"] {
+  if (draft.establishment === "delivery" || draft.establishment === "movil") return draft.establishment;
+  return draft.mode || (draft.establishment === "eventos" ? "eventos" : "");
+}
+
+export function relevantAssessmentFields(draft: AssessmentDraft): AssessmentField[] {
+  const modern = Boolean(draft.stage);
+  const planned = isPlanning(draft.stage);
+  const mode = declaredMode(draft);
+  const fixedPlace = mode === "local" || (mode === "delivery" && draft.fixedPlace !== "no") || draft.fixedPlace === "yes";
+  const salesKnown = !modern || draft.salesOrigin !== "desconocido";
+  const purchasesKnown = !modern || draft.purchasesOrigin !== "desconocido";
   const exceeds = (field: AssessmentField, limit: number) => (amount(draft[field]) ?? 0) > limit;
   // Evaluate in question order so a disqualifying answer stays visible and editable.
   const monthly = draft.legal !== "juridica" && draft.invoice !== "yes"
-    && !exceeds("annualSales", NRUS_ANNUAL_LIMIT) && !exceeds("annualPurchases", NRUS_ANNUAL_LIMIT);
-  const nrusLocations = monthly && !exceeds("maxMonthlySales", NRUS_MONTHLY_LIMIT_CAT2)
-    && !exceeds("maxMonthlyPurchases", NRUS_MONTHLY_LIMIT_CAT2);
-  const rer = !exceeds("annualSales", RER_ANNUAL_INCOME_LIMIT) && !exceeds("annualPurchases", RER_ANNUAL_PURCHASES_LIMIT);
-  const rmt = !exceeds("annualSales", RMT_INCOME_LIMIT_2026);
+    && !(salesKnown && exceeds(modern ? "grossAnnualSales" : "annualSales", NRUS_ANNUAL_LIMIT))
+    && !(purchasesKnown && exceeds(modern ? "grossPurchases" : "annualPurchases", NRUS_ANNUAL_LIMIT));
+  const nrusLocations = monthly && !(salesKnown && exceeds("maxMonthlySales", NRUS_MONTHLY_LIMIT_CAT2))
+    && !(purchasesKnown && exceeds("maxMonthlyPurchases", NRUS_MONTHLY_LIMIT_CAT2));
+  const rer = !(salesKnown && exceeds("annualSales", RER_ANNUAL_INCOME_LIMIT))
+    && !(purchasesKnown && exceeds("annualPurchases", RER_ANNUAL_PURCHASES_LIMIT));
+  const rmt = !(salesKnown && exceeds("annualSales", RMT_INCOME_LIMIT_2026));
   const conditional: Partial<Record<AssessmentField, boolean>> = {
-    invoice: draft.legal !== "juridica",
-    annualPurchases: !exceeds("annualSales", RER_ANNUAL_INCOME_LIMIT),
+    establishment: true,
+    description: modern,
+    onlineOrders: modern,
+    channels: modern && draft.onlineOrders === "yes",
+    equipment: modern && fixedPlace && (draft.activity === "5610" || draft.activity === "5621" || draft.activity === "5629"),
+    smoke: modern && fixedPlace && selectionOptions(draft.equipment, kitchenEquipment).some(([key]) => key !== "unknown"),
+    constituted: modern && draft.stage !== "idea" && draft.legal === "juridica",
+    mode: modern && draft.establishment !== "delivery" && draft.establishment !== "movil",
+    fixedPlace: modern && mode !== "local",
+    partners: modern && draft.legal !== "natural",
+    customers: modern,
+    invoice: modern || draft.legal !== "juridica",
+    rucStatus: modern && !planned,
+    regime: !modern || (!planned && draft.rucStatus === "yes"),
+    risk: modern && fixedPlace,
+    license: modern && !planned && fixedPlace,
+    itse: modern && !planned && fixedPlace,
+    salesOrigin: false,
+    workforce: modern,
+    domicile: modern && (nrusLocations || rer || rmt),
+    priorRmt: modern && !planned && rmt && draft.foreignBranch !== "yes" && draft.linkage !== "yes",
+    grossPurchases: modern && draft.legal !== "juridica" && draft.invoice !== "yes",
+    annualSales: true,
+    grossAnnualSales: modern && draft.legal !== "juridica" && draft.invoice !== "yes",
+    annualPurchases: (!modern || !salesKnown || !exceeds("annualSales", RER_ANNUAL_INCOME_LIMIT)),
     maxMonthlySales: monthly,
     maxMonthlyPurchases: monthly,
+    nrusRestriction: modern && nrusLocations,
+    rerRestriction: modern && rer,
     locations: nrusLocations,
     assets: rer || (nrusLocations && !exceeds("locations", 1)),
     workers: rer && !exceeds("assets", RER_ASSETS_LIMIT),
@@ -119,10 +285,20 @@ export function validateAssessmentStep(draft: AssessmentDraft, step: number, vis
     for (const field of required) {
       if (visible.includes(field) && !draft[field]) issues[field] = "Selecciona una opción. Puedes indicar que no sabes.";
     }
+    if (draft.stage) {
+      for (const field of ["establishment", "mode", "rucStatus"] as const) {
+        if (visible.includes(field) && !draft[field]) issues[field] = "Selecciona una opción. Puedes indicar que no sabes.";
+      }
+    }
+    if (!draft.establishment) issues.establishment = "Selecciona un tipo de establecimiento.";
+    if (!draft.stage) issues.stage = "Selecciona la etapa de tu negocio.";
+    if (draft.stage && !confirmedClassification(draft.activity, draft.activityEvidence, draft.secondary) && draft.activity !== "unknown" && draft.activity !== "review") {
+      issues.activity = "Confirma el código o indica que la clasificación queda pendiente.";
+    }
   }
-  if (step === 1 && visible.includes("maxMonthlySales")) {
-    for (const [monthly, yearly] of [["maxMonthlySales", "annualSales"], ["maxMonthlyPurchases", "annualPurchases"]] as const) {
-      if (draft[monthly] !== "" && draft[yearly] !== "" && Number(draft[monthly].replace(",", ".")) > Number(draft[yearly].replace(",", "."))) {
+  if (step === 1 && (visible.includes("maxMonthlySales") || visible.includes("maxMonthlyPurchases"))) {
+    for (const [monthly, yearly] of [["maxMonthlySales", draft.stage ? "grossAnnualSales" : "annualSales"], ["maxMonthlyPurchases", draft.stage ? "grossPurchases" : "annualPurchases"]] as const) {
+      if (visible.includes(monthly) && visible.includes(yearly) && draft[monthly] !== "" && draft[yearly] !== "" && Number(draft[monthly].replace(",", ".")) > Number(draft[yearly].replace(",", "."))) {
         issues[monthly] = "El máximo de un mes debe ser menor o igual al total anual.";
       }
     }
@@ -133,20 +309,20 @@ export function validateAssessmentStep(draft: AssessmentDraft, step: number, vis
 type MissingRule = readonly [string, ...AssessmentField[]];
 const missingRules: Record<TaxRecommendation["code"], readonly MissingRule[]> = {
   NRUS: [
-    ["TR-NRUS-02", "annualSales", "maxMonthlySales"],
-    ["TR-NRUS-03", "annualPurchases", "maxMonthlyPurchases"],
+    ["TR-NRUS-02", "grossAnnualSales", "annualSales", "maxMonthlySales", "salesOrigin"],
+    ["TR-NRUS-03", "grossPurchases", "annualPurchases", "maxMonthlyPurchases"],
     ["TR-NRUS-01", "legal"],
     ["TR-NRUS-04", "invoice"],
     ["TR-NRUS-05", "locations"],
-    ["TR-NRUS-06", "assets"],
+    ["TR-NRUS-06", "assets"], ["TR-NRUS-07", "nrusRestriction"], ["TR-NRUS-08", "domicile"],
   ],
   RER: [
-    ["TR-RER-01", "annualSales"],
+    ["TR-RER-01", "annualSales", "salesOrigin"],
     ["TR-RER-02", "annualPurchases"],
     ["TR-RER-03", "assets"],
-    ["TR-RER-04", "workers"],
+    ["TR-RER-04", "workers"], ["TR-RER-05", "rerRestriction"], ["TR-RER-06", "domicile"],
   ],
-  RMT: [["TR-RMT-01", "annualSales"], ["TR-RMT-02", "foreignBranch", "linkage"]],
+  RMT: [["TR-RMT-01", "annualSales", "salesOrigin"], ["TR-RMT-02", "foreignBranch", "linkage"], ["TR-RMT-03", "priorRmt"], ["TR-RMT-04", "domicile"]],
   RG: [["TR-RG-01", "annualSales"]],
 };
 
@@ -157,7 +333,9 @@ export function nextAssessmentGap(regime: TaxRecommendation, context: BusinessCo
   for (const [ruleId, ...fields] of missingRules[regime.code]) {
     const rule = regime.evaluatedRules.find((item) => item.ruleId === ruleId && item.passed === null);
     if (!rule) continue;
-    const field = fields.find((field) => visible.includes(field) && (!draft[field] || draft[field] === "unknown" || draft[field] === "aun-no-se"));
+    const legacyAmount = context.assessmentVersion === 3 && (ruleId === "TR-NRUS-02" ? "annualSales" : ruleId === "TR-NRUS-03" ? "annualPurchases" : undefined);
+    const field = fields.find((field) => field !== legacyAmount && visible.includes(field)
+      && (!draft[field] || draft[field] === "unknown" || draft[field] === "aun-no-se" || draft[field] === "desconocido"));
     if (field) return { field, explanation: rule.explanation };
   }
   if (!context.activityId && !context.ciiu && !context.otherActivity?.trim()) {
@@ -177,53 +355,91 @@ function boolean(text: string) {
   return text === "yes" ? true : text === "no" ? false : undefined;
 }
 
+export const isPlanning = (stage: string) => stage === "idea" || stage === "preparacion";
+
 export function toBusinessContext(draft: AssessmentDraft, previous?: BusinessContext): BusinessContext {
   const visible = relevantAssessmentFields(draft);
   const included = (field: AssessmentField) => visible.includes(field) ? draft[field] : "";
   const locations = amount(included("locations"));
-  const workers = amount(included("workers")) ?? (visible.includes("workers") ? undefined : previous?.employeeCountPerShift ?? previous?.employees);
+  const workers = amount(included("workers"));
   const needsInvoices = boolean(included("invoice"));
-  const activity = draft.activity === "unknown" ? "" : draft.activity;
+  const modern = Boolean(draft.stage);
+  const classification = confirmedClassification(draft.activity, draft.activityEvidence, draft.secondary);
+  const activity = modern ? classification?.primary ?? "" : draft.activity === "unknown" ? "" : draft.activity;
+  const financialOrigin = (value: string): FinancialOrigin =>
+    value === "proyectado" || (value === "real" && !isPlanning(draft.stage)) ? value
+      : value === "desconocido" || ![included("annualSales"), included("grossAnnualSales"), included("maxMonthlySales")].some(Boolean)
+        ? "desconocido" : isPlanning(draft.stage) ? "proyectado" : "declarado";
+  const hasPurchaseAmounts = (["annualPurchases", "grossPurchases", "maxMonthlyPurchases"] as const).some((field) => included(field) !== "");
+  const purchaseOrigin: FinancialOrigin = !hasPurchaseAmounts || draft.purchasesOrigin === "desconocido" ? "desconocido"
+    : isPlanning(draft.stage) ? "proyectado" : draft.purchasesOrigin === "real" || draft.purchasesOrigin === "proyectado" ? draft.purchasesOrigin : "declarado";
+  const purchaseAmount = (field: "annualPurchases" | "grossPurchases" | "maxMonthlyPurchases") =>
+    purchaseOrigin === "desconocido" && modern ? undefined : amount(included(field));
+  const partnerCount = draft.legal === "natural" ? undefined : amount(draft.partners);
+  const mode = declaredMode(draft);
   return {
     ...previous,
-    assessmentVersion: 2,
+    ...cajamarcaLocation,
+    assessmentVersion: modern ? 3 : 2,
+    establishment: draft.establishment || undefined,
+    digitalOrders: boolean(draft.onlineOrders),
+    orderChannels: selectionOptions(draft.channels, digitalChannels).map(([key]) => key),
+    kitchenEquipment: selectionOptions(included("equipment"), kitchenEquipment).map(([key]) => key),
+    kitchenSmoke: boolean(included("smoke")),
+    constitutionRegistered: boolean(included("constituted")),
+    stage: draft.stage || undefined,
+    financialOrigins: modern ? { sales: financialOrigin(draft.salesOrigin), purchases: purchaseOrigin } : undefined,
+    ciiuClassification: classification,
+    ciiuStatus: classification ? "confirmada" : draft.activity === "review" ? "revision" : "pendiente",
+    ciiuSuggestionSource: classification ? readCiiuSnapshot(draft.activityAnalysis)?.source ?? previous?.ciiuSuggestionSource : undefined,
+    operationMode: mode || undefined,
+    typicalMonthlyRevenue: amount(draft.typicalSales),
+    typicalMonthlyPurchases: amount(draft.typicalPurchases),
+    grossAnnualRevenue: amount(included("grossAnnualSales")),
+    grossAnnualPurchases: purchaseAmount("grossPurchases"),
+    domiciledInPeru: boolean(included("domicile")),
+    rmtPriorYearOverLimit: boolean(included("priorRmt")),
+    hasRuc: boolean(included("rucStatus")),
+    municipalRisk: draft.risk && visible.includes("risk") ? draft.risk : undefined,
+    licenseStatus: draft.license && visible.includes("license") ? draft.license : undefined,
+    itseStatus: draft.itse && visible.includes("itse") ? draft.itse : undefined,
+    nrusExcluded: boolean(included("nrusRestriction")),
+    rerExcluded: boolean(included("rerRestriction")),
     businessName: draft.name.trim(),
-    purpose: "revisar",
+    purpose: isPlanning(draft.stage) ? "crear" : draft.stage === "operando" ? "formalizar" : "revisar",
     sectorId: "restaurantes",
     activityId: activity,
-    ciiu: activity === "restaurante" ? "5610" : activity === "catering" ? "5621" : undefined,
-    otherActivity: "",
-    department: "Cajamarca",
-    province: previous?.province ?? "",
-    district: previous?.district ?? "",
+    ciiu: modern ? classification?.primary : activity === "restaurante" ? "5610" : activity === "catering" ? "5621" : undefined,
+    otherActivity: modern ? draft.description.trim() : "",
     legalPerson: draft.legal || "aun-no-se",
     personType: draft.legal === "natural" ? "PERSONA_NATURAL" : draft.legal === "juridica" ? "PERSONA_JURIDICA" : undefined,
-    hasPartners: previous?.hasPartners ?? false,
-    partnerCount: previous?.partnerCount ?? 0,
-    hasPhysicalLocation: locations !== undefined,
-    servesPublic: previous?.servesPublic ?? true,
-    hasEmployees: workers === undefined ? undefined : workers > 0,
+    hasPartners: modern ? (partnerCount ?? 0) > 0 : previous?.hasPartners ?? false,
+    partnerCount: modern ? partnerCount ?? 0 : previous?.partnerCount ?? 0,
+    hasPhysicalLocation: modern ? mode === "local" || (mode === "delivery" && draft.fixedPlace !== "no") || draft.fixedPlace === "yes" : locations !== undefined,
+    hasLocal: modern ? mode === "local" || (mode === "delivery" && draft.fixedPlace !== "no") ? true : boolean(draft.fixedPlace) : previous?.hasLocal,
+    servesPublic: modern ? mode === "local" || mode === "movil" : previous?.servesPublic ?? true,
+    hasEmployees: modern ? boolean(included("workforce")) : workers === undefined ? undefined : workers > 0,
     employeeCount: workers ?? 0,
     employeeCountPerShift: workers,
     employees: workers,
-    sellsOnline: previous?.sellsOnline ?? false,
-    preparesFood: true,
+    sellsOnline: modern ? boolean(draft.onlineOrders) ?? (mode === "delivery") : previous?.sellsOnline ?? false,
+    preparesFood: modern ? Boolean(classification && classification.primary !== "5630") : true,
     importsGoods: previous?.importsGoods ?? false,
     exportsGoods: previous?.exportsGoods ?? false,
     providesRegulatedService: previous?.providesRegulatedService ?? false,
-    customerType: "aun-no-se",
+    customerType: draft.customers || "aun-no-se",
     needsInvoices: needsInvoices ?? null,
     needsFacturas: needsInvoices,
-    emittedReceipts: needsInvoices === true ? ["BOLETA", "FACTURA"] : needsInvoices === false ? ["BOLETA"] : undefined,
+    emittedReceipts: modern ? undefined : needsInvoices === true ? ["BOLETA", "FACTURA"] : needsInvoices === false ? ["BOLETA"] : undefined,
     establishmentCount: locations,
     hasMultipleLocations: locations !== undefined && locations > 1,
     foreignSourceIncome: previous?.foreignSourceIncome ?? false,
     collectsPersonalData: previous?.collectsPersonalData ?? false,
-    currentRegime: draft.regime || "DESCONOCIDO",
-    annualRevenue: amount(draft.annualSales),
-    annualPurchases: amount(included("annualPurchases")),
+    currentRegime: modern && (isPlanning(draft.stage) || draft.rucStatus === "no") ? "SIN_REGIMEN" : modern && draft.rucStatus !== "yes" ? "DESCONOCIDO" : draft.regime || "DESCONOCIDO",
+    annualRevenue: amount(included("annualSales")),
+    annualPurchases: purchaseAmount("annualPurchases"),
     maxMonthlyRevenue: amount(included("maxMonthlySales")),
-    maxMonthlyPurchases: amount(included("maxMonthlyPurchases")),
+    maxMonthlyPurchases: purchaseAmount("maxMonthlyPurchases"),
     fixedAssets: amount(included("assets")),
     fixedAssetsValue: amount(included("assets")),
     hasCorporateLinkageOverLimit: boolean(included("linkage")),
@@ -238,15 +454,46 @@ export function fromBusinessContext(context: BusinessContext): AssessmentDraft {
   const choice = (input?: boolean | null) => input === true ? "yes" : input === false ? "no" : "unknown";
   const activity = context.ciiu === "5621" || context.activityId === "catering" ? "catering"
     : context.ciiu === "5610" || context.activityId === "restaurante" ? "restaurante" : "unknown";
+  const code = context.ciiuClassification?.primary ?? context.ciiu;
   return {
+    ...emptyDraft,
     name: context.businessName ?? "",
-    activity,
+    stage: context.stage ?? "",
+    description: context.otherActivity ?? "",
+    activity: context.stage ? isCiiuCode(code) ? code : context.ciiuStatus === "revision" ? "review" : "unknown" : activity,
+    activityEvidence: isCiiuCode(code) ? code : "unknown",
+    secondary: context.ciiuClassification?.secondary.join(",") ?? "",
+    salesOrigin: context.financialOrigins?.sales === "desconocido" ? "" : context.financialOrigins?.sales ?? "",
+    purchasesOrigin: context.financialOrigins?.purchases ?? "",
+    typicalSales: value(context.typicalMonthlyRevenue),
+    typicalPurchases: value(context.typicalMonthlyPurchases),
+    grossAnnualSales: value(context.financialOrigins?.sales === "desconocido" ? undefined : context.grossAnnualRevenue),
+    grossPurchases: value(context.grossAnnualPurchases),
+    domicile: choice(context.domiciledInPeru),
+    priorRmt: choice(context.rmtPriorYearOverLimit),
+    workforce: choice(context.hasEmployees),
+    establishment: context.establishment ?? "",
+    onlineOrders: context.digitalOrders === undefined ? "" : choice(context.digitalOrders),
+    channels: context.orderChannels?.join(",") ?? "",
+    equipment: context.kitchenEquipment?.join(",") ?? "",
+    smoke: context.kitchenSmoke === undefined ? "" : choice(context.kitchenSmoke),
+    constituted: context.constitutionRegistered === undefined ? "" : choice(context.constitutionRegistered),
+    mode: context.operationMode ?? "",
+    fixedPlace: choice(context.hasLocal),
+    partners: context.hasPartners ? value(context.partnerCount) : "",
+    customers: context.customerType,
+    rucStatus: choice(context.hasRuc),
+    risk: context.municipalRisk ?? "",
+    license: context.licenseStatus ?? "",
+    itse: context.itseStatus ?? "",
+    nrusRestriction: choice(context.nrusExcluded),
+    rerRestriction: choice(context.rerExcluded),
     legal: context.legalPerson,
     regime: context.currentRegime ?? "DESCONOCIDO",
     invoice: choice(context.needsFacturas ?? context.needsInvoices),
-    annualSales: value(context.annualRevenue),
+    annualSales: value(context.financialOrigins?.sales === "desconocido" ? undefined : context.annualRevenue),
     annualPurchases: value(context.annualPurchases),
-    maxMonthlySales: value(context.maxMonthlyRevenue),
+    maxMonthlySales: value(context.financialOrigins?.sales === "desconocido" ? undefined : context.maxMonthlyRevenue),
     maxMonthlyPurchases: value(context.maxMonthlyPurchases),
     assets: value(context.fixedAssetsValue ?? context.fixedAssets),
     workers: value(context.employeeCountPerShift ?? context.employees),

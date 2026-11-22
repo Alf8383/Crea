@@ -35,6 +35,47 @@ export function SiteHeader() {
     }
   }
 
+  const authPage = pathname === "/ingresar" || pathname === "/registro";
+  if (pathname === "/negocios/nuevo" || authPage) return <>
+    <a href="#contenido" className="skip-link">Saltar al contenido</a>
+    <header className="bg-[#edf5fb] px-4 pt-5 font-[Arial,Helvetica,sans-serif] sm:px-8">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 rounded-t-[28px] border-b border-blue-100 bg-white px-6 py-5 sm:px-10">
+        <Brand />
+        <nav aria-label="Navegación principal" className="flex gap-3 text-sm font-semibold text-[#0a4db7]">
+          <Link href="/" className="rounded-xl px-4 py-3 hover:bg-blue-50">Inicio</Link>
+          {authPage && !user ? <Link href={pathname === "/registro" ? "/ingresar" : "/registro"} className="rounded-xl bg-[#1464f6] px-4 py-3 text-white">
+            {pathname === "/registro" ? "Iniciar sesión" : "Crear cuenta"}
+          </Link> : <Link href="/negocios" className="rounded-xl border border-blue-200 px-4 py-3">Mi espacio</Link>}
+        </nav>
+      </div>
+    </header>
+  </>;
+
+  if (pathname === "/") return <>
+    <a href="#contenido" className="skip-link">Saltar al contenido</a>
+    <header className="bg-[#edf5fb] px-4 pt-5 font-[Arial,Helvetica,sans-serif] sm:px-6">
+      <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4 rounded-t-[28px] bg-white px-6 py-6 sm:px-14">
+        <Brand />
+        <nav aria-label="Navegación principal" className="order-last flex w-full flex-wrap items-center gap-x-5 gap-y-1 text-sm font-semibold text-slate-700 lg:order-none lg:w-auto lg:gap-8">
+          <a href="#inicio" className="border-b-2 border-[#1464f6] py-3 text-[#071c56]">Inicio</a>
+          <a href="#como-funciona" className="py-3 hover:text-[#0a4db7]">¿Cómo funciona?</a>
+          <a href="#beneficios" className="py-3 hover:text-[#0a4db7]">Beneficios</a>
+          <a href="#preguntas" className="py-3 hover:text-[#0a4db7]">Preguntas frecuentes</a>
+        </nav>
+        <div className="flex flex-wrap gap-2 text-sm font-bold">
+          {user ? <>
+            <Link href="/negocios" className="rounded-xl bg-[#1464f6] px-4 py-3 text-white">Mis evaluaciones</Link>
+            <Button variant="ghost" onClick={logout}>Salir <LogOut aria-hidden="true" /></Button>
+          </> : <>
+            <Link href="/ingresar" className="rounded-xl border border-[#1464f6] px-4 py-3 text-[#0a4db7]">Iniciar sesión</Link>
+            <Link href="/registro" className="rounded-xl bg-[#1464f6] px-4 py-3 text-white">Crear cuenta</Link>
+          </>}
+        </div>
+        {error && <p role="alert" className="w-full text-sm text-destructive">No pudimos cerrar tu sesión. Intenta de nuevo.</p>}
+      </div>
+    </header>
+  </>;
+
   return <>
     <a href="#contenido" className="skip-link">Saltar al contenido</a>
     <header className="site-header">

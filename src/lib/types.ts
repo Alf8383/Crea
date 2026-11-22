@@ -17,8 +17,33 @@ export type RestaurantActivityCode =
   | "CAFETERIA_FUENTE_SODA"
   | "CATERING_EVENTOS";
 
+export type BusinessStage = "idea" | "preparacion" | "operando" | "formalizado";
+export type FinancialOrigin = "real" | "proyectado" | "declarado" | "desconocido";
+
 export type BusinessContext = {
-  assessmentVersion?: 2;
+  assessmentVersion?: 2 | 3;
+  stage?: BusinessStage;
+  financialOrigins?: { sales: FinancialOrigin; purchases: FinancialOrigin };
+  ciiuStatus?: "confirmada" | "pendiente" | "revision";
+  ciiuSuggestionSource?: "local" | "ia";
+  ciiuClassification?: { version: string; primary: string; secondary: string[] };
+  establishment?: "restaurante" | "cafeteria" | "polleria" | "cevicheria" | "pizzeria" | "menu" | "rapida" | "delivery" | "eventos" | "movil" | "otro";
+  digitalOrders?: boolean;
+  orderChannels?: string[];
+  kitchenEquipment?: string[];
+  kitchenSmoke?: boolean;
+  constitutionRegistered?: boolean;
+  operationMode?: "local" | "recojo" | "delivery" | "eventos" | "movil" | "desconocido";
+  grossAnnualRevenue?: number;
+  grossAnnualPurchases?: number;
+  domiciledInPeru?: boolean;
+  rmtPriorYearOverLimit?: boolean;
+  hasRuc?: boolean;
+  municipalRisk?: "bajo-medio" | "alto" | "desconocido";
+  licenseStatus?: "yes" | "no" | "unknown";
+  itseStatus?: "yes" | "no" | "unknown";
+  nrusExcluded?: boolean;
+  rerExcluded?: boolean;
   maxMonthlyRevenue?: number;
   maxMonthlyPurchases?: number;
   rucLastDigit?: string;
@@ -64,6 +89,8 @@ export type BusinessContext = {
   currentRegime?: TaxRegimeCode | "DESCONOCIDO" | "SIN_REGIMEN";
   ciiu?: string;
   restaurantSpecialty?: RestaurantActivityCode;
+  typicalMonthlyRevenue?: number;
+  typicalMonthlyPurchases?: number;
   annualRevenue?: number;
   monthlyPurchasesWithInvoice?: number;
   monthlyPurchasesWithoutInvoice?: number;

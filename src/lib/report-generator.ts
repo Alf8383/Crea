@@ -3,6 +3,9 @@ import { seedCatalog } from "./seed-catalog";
 import { getRestaurantObligations } from "./sunat-calendar";
 import type { BusinessContext, TaxRegimeCode } from "./types";
 
+const customerLabels: Record<BusinessContext["customerType"], string> = {
+  personas: "Personas", empresas: "Empresas o instituciones", ambos: "Personas y empresas", "aun-no-se": "Sin indicar",
+};
 const money = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
 
 function formatAmount(value?: number) {
@@ -27,7 +30,9 @@ export function buildDiagnosticReportData(
   const obligations = declared ? getRestaurantObligations(context, "", declared as TaxRegimeCode, evaluation.taxRecommendations).obligations : [];
   obligations.forEach(({ sourceId }) => activeSources.add(sourceId));
   const formData: Array<[string, string, string]> = [
-    ["Actividad económica (CIIU)", context.ciiu ?? "Sin indicar", "ciiu"],
+    ["RUC declarado", formatBoolean(context.hasRuc), "hasRuc"],
+    ["Tipo de clientes", customerLabels[context.customerType] ?? "Sin indicar", "customerType"],
+    ["Actividad económica (CIIU)", context.ciiu ?? (context.ciiuStatus === "revision" ? "Clasificación por revisar" : "Clasificación pendiente"), "ciiu"],
     ["Tipo de registro", context.legalPerson === "natural" ? "Persona natural con negocio" : context.legalPerson === "juridica" ? "Persona jurídica" : "Sin indicar", "personType"],
     ["Ventas anuales", formatAmount(context.annualRevenue), "annualRevenue"],
     ["Compras anuales", formatAmount(context.annualPurchases), "annualPurchases"],
@@ -40,11 +45,27 @@ export function buildDiagnosticReportData(
     ["Vinculación corporativa sobre el límite RMT", formatBoolean(context.hasCorporateLinkageOverLimit), "hasCorporateLinkageOverLimit"],
     ["Establecimiento de empresa extranjera", formatBoolean(context.isForeignBranch), "isForeignBranch"],
   ];
-  if (context.assessmentVersion !== 2) {
+  if (context.ciiuClassification) {
+    formData.push(["Versión CIIU", context.ciiuClassification.version, "ciiuVersion"],
+      ["Actividades secundarias", context.ciiuClassification.secondary.join(", ") || "Sin indicar", "secondary"]);
+  }
+  if (context.assessmentVersion === 3) formData.push(
+    ["Ingresos brutos anuales", formatAmount(context.grossAnnualRevenue), "grossAnnualRevenue"],
+    ["Compras brutas anuales", formatAmount(context.grossAnnualPurchases), "grossAnnualPurchases"],
+  );
+  if (context.assessmentVersion === undefined) {
     formData.push(["Ventas mensuales declaradas", formatAmount(context.monthlyRevenue), "monthlyRevenue"]);
     formData.push(["Compras mensuales declaradas", formatAmount(context.monthlyPurchases), "monthlyPurchases"]);
   }
 
+  const salesKeys = new Set(["annualRevenue", "grossAnnualRevenue", "maxMonthlyRevenue"]);
+  const purchaseKeys = new Set(["annualPurchases", "grossAnnualPurchases", "maxMonthlyPurchases"]);
+  function originLabel(key: string) {
+    const origin = salesKeys.has(key) ? context.financialOrigins?.sales
+      : purchaseKeys.has(key) ? context.financialOrigins?.purchases : undefined;
+    if (origin) return { real: "Real declarado", proyectado: "Proyectado", declarado: "Declarado", desconocido: "Desconocido" }[origin];
+    return context.dataOrigins?.[key] === "VERIFICADO_FUENTE_OFICIAL" ? "Verificado en fuente oficial" : "Declarado";
+  }
   return {
     generatedAtFormatted: generatedAt.toLocaleDateString("es-PE", { dateStyle: "long", timeZone: "America/Lima" }),
     evaluationDate: current?.diagnosticDate,
@@ -53,7 +74,7 @@ export function buildDiagnosticReportData(
     location: [...new Set([context.district, context.province, context.department].filter(Boolean))].join(", "),
     current,
     evaluatedDataWithOrigins: formData.map(([field, value, key]) => ({
-      field, value, origin: context.dataOrigins?.[key] === "VERIFICADO_FUENTE_OFICIAL" ? "Verificado en fuente oficial" : "Declarado",
+      field, value, origin: originLabel(key),
     })),
     alternatives: evaluation.taxRecommendations,
     obligations,
