@@ -195,7 +195,7 @@ function CloudChat({ context }: { context: Context | null }) {
             body: JSON.stringify({ question: query }),
             credentials: "omit",
             referrerPolicy: "no-referrer",
-            signal: AbortSignal.any([abortSignal, AbortSignal.timeout(15000)]),
+            signal: AbortSignal.any([abortSignal, AbortSignal.timeout(25000)]),
           });
           if (!response.ok) throw new Error("Assistant unavailable");
           const data = (await response.json()) as { answer?: string; topic?: string };
