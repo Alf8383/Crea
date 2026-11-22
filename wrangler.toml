@@ -1,0 +1,7 @@
+name = "crea-assistant"
+main = "worker/assistant.ts"
+compatibility_date = "2026-11-01"
+
+[vars]
+CREA_ASSISTANT_MODEL = "MiniMax-M3.1-Flash"
+ALLOWED_ORIGINS = "https://creaperu.web.app,https://crea.stelflux.com,http://localhost:3000,http://127.0.0.1:3000"
