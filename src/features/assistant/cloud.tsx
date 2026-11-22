@@ -144,24 +144,36 @@ function CloudChat({ context }: { context: Context | null }) {
       {restricted ? <p className="p-5">La asistencia está deshabilitada en el módulo de investigación para proteger las respuestas del pretest y el postest.</p> : <>
         <div ref={scroll} className="crea-cloud-log" role="log" aria-label="Conversación" aria-live="polite" tabIndex={0}>
           {context && <p className="text-sm"><strong>{context.stage}</strong><br />{context.question}</p>}
-          {messages.length === 0 && <p className="text-sm">Consulta explicaciones con fuentes verificadas. Evita incluir RUC, claves o datos personales.</p>}
-          {messages.map((message, index) => <div className="grid gap-2 text-sm" key={index}>
-            <p className="crea-cloud-question">{message.question}</p>
-            <div className="rounded-xl bg-muted p-3">
+          {messages.length === 0 && (
+            <div className="rounded-2xl border border-border/60 bg-muted/40 p-3.5 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">¡Hola! Soy CREA IA.</p>
+              <p className="mt-1">Pregúntame sobre RUC, regímenes tributarios, CIIU o formalización en Cajamarca. Evita incluir claves o datos personales.</p>
+            </div>
+          )}
+          {messages.map((message, index) => <div className="grid gap-2.5 text-sm" key={index}>
+            <div className="justify-self-end max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-3.5 py-2.5 text-primary-foreground shadow-xs">
+              <p className="leading-relaxed">{message.question}</p>
+            </div>
+            <div className="justify-self-start max-w-[92%] rounded-2xl rounded-bl-sm border border-border/70 bg-muted/60 p-3.5 shadow-xs">
               {message.answer ? <>
-                <p>{message.answer}</p>
+                <p className="leading-relaxed text-foreground">{message.answer}</p>
                 {message.topic && (assistantTopics[message.topic].url.startsWith("/") ?
-                  <Link className="mt-1 inline-block underline" href={assistantTopics[message.topic].url}>{assistantTopics[message.topic].source}</Link> :
-                  <a className="mt-1 inline-block underline" href={assistantTopics[message.topic].url} target="_blank" rel="noreferrer">{assistantTopics[message.topic].source}</a>)}
+                  <Link className="mt-2 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium text-foreground hover:bg-accent" href={assistantTopics[message.topic].url}>Fuente: {assistantTopics[message.topic].source}</Link> :
+                  <a className="mt-2 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium text-foreground hover:bg-accent" href={assistantTopics[message.topic].url} target="_blank" rel="noreferrer">Fuente: {assistantTopics[message.topic].source}</a>)}
               </> : message.topic ? <>
-                <p>{assistantTopics[message.topic].text}</p>
+                <p className="leading-relaxed text-foreground">{assistantTopics[message.topic].text}</p>
                 {assistantTopics[message.topic].url.startsWith("/") ?
-                  <Link className="underline" href={assistantTopics[message.topic].url}>{assistantTopics[message.topic].source}</Link> :
-                  <a className="underline" href={assistantTopics[message.topic].url} target="_blank" rel="noreferrer">{assistantTopics[message.topic].source}</a>}
-              </> : <p>No encontré una explicación verificada para esa consulta. Prueba las sugerencias o consulta las <Link href="/negocios?seccion=orientacion" className="underline">guías oficiales</Link>.</p>}
-              {authorized && message.context && <p className="mt-2 border-t border-border pt-2">{message.context}</p>}
+                  <Link className="mt-2 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium text-foreground hover:bg-accent" href={assistantTopics[message.topic].url}>Fuente: {assistantTopics[message.topic].source}</Link> :
+                  <a className="mt-2 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium text-foreground hover:bg-accent" href={assistantTopics[message.topic].url} target="_blank" rel="noreferrer">Fuente: {assistantTopics[message.topic].source}</a>}
+              </> : <p className="leading-relaxed text-muted-foreground">No encontré una explicación verificada para esa consulta. Prueba las sugerencias o consulta las <Link href="/negocios?seccion=orientacion" className="underline">guías oficiales</Link>.</p>}
+              {authorized && message.context && <p className="mt-2.5 border-t border-border/60 pt-2 text-xs text-muted-foreground">{message.context}</p>}
             </div>
           </div>)}
+          {busy && (
+            <div className="justify-self-start rounded-2xl rounded-bl-sm border border-border/70 bg-muted/60 px-3.5 py-2.5 text-xs text-muted-foreground">
+              Pensando…
+            </div>
+          )}
           {providerStatus && <p className="text-xs">{providerStatus}</p>}
         </div>
         <form className="crea-cloud-form" onSubmit={submit}>
