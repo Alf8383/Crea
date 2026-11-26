@@ -260,6 +260,7 @@ test("accesibilidad del comparador y de las pestañas de Inicio", async ({ page 
   const tabs = page.getByRole("tablist", { name: "Ejemplos de negocios gastronómicos" });
   const first = tabs.getByRole("tab").first();
   const second = tabs.getByRole("tab").nth(1);
+  await expect(first).toHaveAttribute("aria-controls", /.+/, { timeout: 15000 });
   await first.focus();
   await first.press("ArrowRight");
   await expect(second).toBeFocused();
