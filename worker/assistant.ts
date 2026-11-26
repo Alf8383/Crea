@@ -141,7 +141,7 @@ async function classifyWithMiniMax(
   throw new Error("Invalid provider selection");
 }
 
-export default {
+const assistantWorker = {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const originHeader = request.headers.get("Origin") ?? "";
@@ -220,3 +220,5 @@ export default {
     }
   },
 };
+
+export default assistantWorker;

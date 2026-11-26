@@ -1,9 +1,9 @@
 "use client";
 
+import { Tabs } from "@base-ui/react/tabs";
 import { ArrowRight } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import Link from "next/link";
-import { useState } from "react";
 
 const EASE_OUT_EXPO = [0.23, 1, 0.32, 1] as const;
 
@@ -164,58 +164,25 @@ const SCENARIOS: Scenario[] = [
 ];
 
 export function ScenarioExplorer() {
-  const [selectedId, setSelectedId] = useState(SCENARIOS[0].id);
-  const current = SCENARIOS.find((item) => item.id === selectedId) ?? SCENARIOS[0];
-
   return (
-    <div>
-      {/* Friendly pill tray with spring-sliding active indicator */}
-      <div
-        role="tablist"
+    <Tabs.Root defaultValue={SCENARIOS[0].id}>
+      <Tabs.List
         aria-label="Ejemplos de negocios gastronómicos"
+        activateOnFocus
         className="inline-flex flex-wrap gap-1.5 rounded-3xl border border-[#e5dfd3] bg-[#f2ede3] p-1.5"
       >
-        {SCENARIOS.map((item) => {
-          const isSelected = item.id === current.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              id={`tab-${item.id}`}
-              aria-selected={isSelected}
-              aria-controls={`panel-${item.id}`}
-              onClick={() => setSelectedId(item.id)}
-              className={`landing-press relative min-h-11 rounded-full px-5 py-2 text-sm font-extrabold transition-colors ${
-                isSelected ? "text-white" : "text-[#3b4b6b] hover:text-[#0a1a3c]"
-              }`}
-            >
-              {isSelected && (
-                <motion.span
-                  layoutId="scenario-active-pill"
-                  transition={{ type: "spring", stiffness: 360, damping: 32 }}
-                  className="absolute inset-0 rounded-full bg-[#0b4ac9] shadow-[0_6px_16px_-6px_rgba(11,74,201,0.55)]"
-                />
-              )}
-              <span className="relative z-10">{item.shortLabel}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Friendly, easy-to-scan scenario card */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={current.id}
-          id={`panel-${current.id}`}
-          role="tabpanel"
-          aria-labelledby={`tab-${current.id}`}
-          initial={{ opacity: 0, y: 10, filter: "blur(3px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          exit={{ opacity: 0, y: -6, filter: "blur(2px)" }}
-          transition={{ duration: 0.28, ease: EASE_OUT_EXPO }}
-          className="mt-6 grid gap-8 rounded-[28px] border border-[#e5dfd3] bg-white p-6 shadow-[0_24px_60px_-28px_rgba(10,26,60,0.16)] sm:p-9 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-12"
-        >
+        {SCENARIOS.map((item) => (
+          <Tabs.Tab
+            key={item.id}
+            value={item.id}
+            className="landing-press min-h-11 rounded-full px-5 py-2 text-sm font-extrabold text-[#3b4b6b] hover:text-[#0a1a3c] data-active:bg-[#0b4ac9] data-active:text-white data-active:hover:text-white data-active:shadow-[0_6px_16px_-6px_rgba(11,74,201,0.55)]"
+          >
+            {item.shortLabel}
+          </Tabs.Tab>
+        ))}
+      </Tabs.List>
+      {SCENARIOS.map((current) => (
+        <Tabs.Panel key={current.id} value={current.id} keepMounted className="mt-6 grid gap-8 rounded-[28px] border border-[#e5dfd3] bg-white p-6 shadow-[0_24px_60px_-28px_rgba(10,26,60,0.16)] data-hidden:hidden sm:p-9 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-12">
           {/* Left column: plain-language profile summary */}
           <div className="flex flex-col justify-between border-b border-[#ece6dc] pb-7 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-10">
             <div>
@@ -319,8 +286,8 @@ export function ScenarioExplorer() {
               </ol>
             </div>
           </div>
-        </motion.div>
-      </AnimatePresence>
-    </div>
+        </Tabs.Panel>
+      ))}
+    </Tabs.Root>
   );
 }

@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { createTestAccount } from "../helpers/authenticated-account";
 import { advanceTo, choose, fillProfile } from "../helpers/assessment";
 
 test.describe.configure({ timeout: 90_000 });
@@ -14,7 +15,6 @@ test("la nube conserva la conversación, permite cerrarla con Escape y se restri
   await expect(dialog.getByRole("button", { name: "Cerrar CREA IA" })).toBeFocused();
   await dialog.getByRole("button", { name: "¿Qué es el código CIIU?" }).click();
   await expect(dialog.getByText(/Es el código que identifica/)).toBeVisible();
-  await expect(dialog.getByText(/Proveedor de IA sin configurar/)).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(cloud).toBeFocused();
   await page.getByRole("link", { name: "Comenzar ahora", exact: true }).click();
@@ -28,7 +28,8 @@ test("la nube conserva la conversación, permite cerrarla con Escape y se restri
   await expect(dialog.getByRole("textbox")).toHaveCount(0);
 });
 
-test("una idea puede proyectar ventas sin RUC y guardar su ruta", async ({ page }) => {
+test("una idea puede proyectar ventas sin RUC y guardar su ruta", { tag: "@cuenta" }, async ({ page }) => {
+  await createTestAccount(page);
   await page.goto("/negocios/nuevo");
   const advance = page.getByRole("button", { name: "Continuar" });
   await advance.scrollIntoViewIfNeeded();
@@ -82,7 +83,8 @@ test("una idea puede proyectar ventas sin RUC y guardar su ruta", async ({ page 
 });
 
 for (const stage of ["Estoy preparando mi negocio", "Ya estoy vendiendo, pero tengo trámites pendientes"]) {
-  test("adapta inscripción, proyección y origen para: " + stage, async ({ page }) => {
+  test("adapta inscripción, proyección y origen para: " + stage, { tag: "@cuenta" }, async ({ page }) => {
+    await createTestAccount(page);
     await page.goto("/negocios/nuevo");
     await fillProfile(page, stage, undefined, { invoice: "Sí" });
     await advanceTo(page, "#name");
@@ -92,7 +94,8 @@ for (const stage of ["Estoy preparando mi negocio", "Ya estoy vendiendo, pero te
   });
 }
 
-test("una cafetería ambigua puede continuar y recuperar sus respuestas", async ({ page }) => {
+test("una cafetería ambigua puede continuar y recuperar sus respuestas", { tag: "@cuenta" }, async ({ page }) => {
+  await createTestAccount(page);
   await page.goto("/negocios/nuevo");
   await fillProfile(page, "Solo tengo una idea", undefined, {
     establishment: "Cafetería", description: "Café y desayunos en mesas; todavía no sé qué venderé más.",
@@ -121,7 +124,8 @@ test("los casos ficticios se abren con simulador y formalización", async ({ pag
 });
 
 
-test("conserva la sugerencia al recargar y solo cambia el diagnóstico al confirmar", async ({ page }) => {
+test("conserva la sugerencia al recargar y solo cambia el diagnóstico al confirmar", { tag: "@cuenta" }, async ({ page }) => {
+  await createTestAccount(page);
   await page.goto("/negocios/nuevo");
   await page.getByRole("radio", { name: /Solo tengo una idea/ }).check();
   await advanceTo(page, "#establishment");

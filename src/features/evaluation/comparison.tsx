@@ -59,7 +59,7 @@ export function ComparePage() {
       <table className="comparison-table text-sm sm:text-base">
         <caption className="sr-only">Condiciones de {first.code} y {second.code}</caption>
         <thead><tr>{[first, second].map(({ code, name }) => <th key={code} id={"comparison-" + code} scope="col">
-          <span className="block text-sm font-extrabold text-primary">{code}</span>{name}
+          <span className="block text-sm font-extrabold text-[#c7ddff]">{code}</span>{name}
         </th>)}</tr></thead>
         {rows.map(([field, title]) => <tbody key={field}>
           <tr><th id={"comparison-" + field} scope="rowgroup" colSpan={2}>{title}</th></tr>

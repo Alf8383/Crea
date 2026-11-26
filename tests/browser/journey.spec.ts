@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+import { createTestAccount } from "../helpers/authenticated-account";
 import { advanceTo, choose, editReviewField, fillProfile } from "../helpers/assessment";
 
 test.describe.configure({ timeout: 90_000 });
@@ -17,7 +18,8 @@ async function accessibility(page: Page) {
   expect(violations.map(({ id, nodes }) => [id, nodes.map(({ target }) => target)])).toEqual([]);
 }
 
-test("inicio, validación, revisión y diagnóstico con datos completos", async ({ page }, info) => {
+test("inicio, validación, revisión y diagnóstico con datos completos", { tag: "@cuenta" }, async ({ page }, info) => {
+  await createTestAccount(page);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
@@ -115,7 +117,8 @@ test("inicio, validación, revisión y diagnóstico con datos completos", async 
   expect(errors).toEqual([]);
 });
 
-test("resultados pendientes, comparador, guías y recorrido de teclado", async ({ page }) => {
+test("resultados pendientes, comparador, guías y recorrido de teclado", { tag: "@cuenta" }, async ({ page }) => {
+  await createTestAccount(page);
   await page.goto("/negocios/nuevo");
   await basicAnswers(page);
   await advanceTo(page, "#name");
@@ -180,7 +183,8 @@ test("resultados pendientes, comparador, guías y recorrido de teclado", async (
   }
 });
 
-test("recupera respuestas y el paso al volver a la evaluación", async ({ page }) => {
+test("recupera respuestas y el paso al volver a la evaluación", { tag: "@cuenta" }, async ({ page }) => {
+  await createTestAccount(page);
   await page.goto("/negocios/nuevo");
   await fillProfile(page, "Mi negocio ya está formalizado", undefined, { stopAtSales: true });
   await page.locator("#typicalSales").fill("3400");
@@ -213,7 +217,8 @@ test("obligaciones públicas y consulta voluntaria del vencimiento", async ({ pa
   await noOverflow(page);
 });
 
-test("régimen desconocido, preguntas condicionales y resultado incompatible", async ({ page }) => {
+test("régimen desconocido, preguntas condicionales y resultado incompatible", { tag: "@cuenta" }, async ({ page }) => {
+  await createTestAccount(page);
   await page.goto("/negocios/nuevo");
   await fillProfile(page, "Mi negocio ya está formalizado", "DESCONOCIDO", { legal: "juridica" });
   await advanceTo(page, "#name");
@@ -237,9 +242,34 @@ test("régimen desconocido, preguntas condicionales y resultado incompatible", a
 test("demostración explícita y secciones protegidas", async ({ page }) => {
   await page.goto("/ingresar");
   await expect(page.getByRole("heading", { name: "Modo demostración" })).toBeVisible();
+  await expect(page.getByText("Para evaluar tu negocio necesitas una cuenta", { exact: false })).toBeVisible();
+  await page.goto("/negocios/nuevo");
+  await expect(page.getByRole("heading", { name: "Explora una evaluación de demostración" })).toBeVisible();
+  await expect(page.locator("#stage")).toHaveCount(0);
+  await page.getByRole("link", { name: "Ver casos ficticios" }).click();
+  await expect(page.getByRole("button", { name: /Abrir ejemplo: Cafetería en preparación/ })).toBeVisible();
   await page.goto("/admin");
   await expect(page.getByRole("heading", { name: "Disponible con una cuenta real" })).toBeVisible();
   await page.goto("/investigacion");
   await expect(page.getByText(/36 restaurantes en un solo grupo/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Disponible con una cuenta real" })).toBeVisible();
+});
+
+test("accesibilidad del comparador y de las pestañas de Inicio", async ({ page }) => {
+  await page.goto("/");
+  const tabs = page.getByRole("tablist", { name: "Ejemplos de negocios gastronómicos" });
+  const first = tabs.getByRole("tab").first();
+  const second = tabs.getByRole("tab").nth(1);
+  await first.focus();
+  await first.press("ArrowRight");
+  await expect(second).toBeFocused();
+  await expect(second).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tabpanel")).toHaveCount(1);
+  await second.press("ArrowLeft");
+  await expect(first).toBeFocused();
+  await expect(first).toHaveAttribute("aria-selected", "true");
+  await accessibility(page);
+
+  await page.goto("/comparar");
+  await accessibility(page);
 });

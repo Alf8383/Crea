@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { browserProjects } from "./playwright.config";
 
 const existingServer = process.env.CREA_FIREBASE_E2E_URL;
 if (existingServer && !["localhost", "127.0.0.1", "[::1]"].includes(new URL(existingServer).hostname)) {
@@ -7,9 +8,13 @@ if (existingServer && !["localhost", "127.0.0.1", "[::1]"].includes(new URL(exis
 const baseURL = existingServer || "http://127.0.0.1:3101";
 
 export default defineConfig({
-  testDir: "./tests/firebase-browser",
+  testDir: "./tests",
+  projects: [
+    ...browserProjects.map((project) => ({ ...project, testMatch: "browser/*.spec.ts", grep: /@cuenta/ })),
+    { name: "estudio", testMatch: "firebase-browser/*.spec.ts", dependencies: browserProjects.map(({ name }) => name) },
+  ],
   outputDir: "test-results/firebase-browser",
-  workers: 1,
+  workers: 2,
   timeout: 120000,
   expect: { timeout: 20000 },
   use: {

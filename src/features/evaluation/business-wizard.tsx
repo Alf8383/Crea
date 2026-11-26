@@ -34,19 +34,44 @@ type Edit = { fields: AssessmentField[]; original: AssessmentDraft; returnToDiag
 type Errors = ReturnType<typeof validateAssessmentStep>;
 
 export function BusinessWizard() {
-  const { user, loading } = useSession();
+  const { user, loading, mode } = useSession();
   const search = useSearchParams();
   const editing = search.get("editar") === "1";
   const requested = search.get("campo");
   const requestedField = assessmentFields.flat().find((field) => field === requested);
 
-  return <AssessmentEditor key={JSON.stringify([loading, user?.uid, editing, requestedField])} loading={loading} uid={user?.uid} requestedField={requestedField} editing={editing} />;
+  if (loading) return <div className="container-site page-shell"><p role="status">Cargando evaluación…</p></div>;
+
+  if (!user) return (
+    <div className={styles.background}>
+      <div className={styles.shell}>
+        <div className="mx-auto grid max-w-xl gap-5 py-10 text-center">
+          <PageHeading
+            label="Evaluación guiada"
+            title={mode === "demo" ? "Explora una evaluación de demostración" : mode === "offline" ? "Evaluación sin conexión" : "Inicia sesión para evaluar tu restaurante"}
+            description={mode === "demo"
+              ? "Prueba el diagnóstico y la ruta de formalización con datos ficticios. Para evaluar tu negocio necesitas una cuenta en el sitio de CREA."
+              : mode === "offline"
+                ? "Las cuentas no están disponibles en este entorno. Puedes explorar un ejemplo de CREA mientras tanto."
+                : "Necesitas una cuenta para guardar tu evaluación, consultar tu diagnóstico tributario y seguir tu ruta de formalización."}
+          />
+          <div className="flex flex-wrap justify-center gap-3">
+            {mode === "firebase" ? <>
+              <LinkButton href="/ingresar?volver=/negocios/nuevo">Iniciar sesión <ArrowRight aria-hidden="true" /></LinkButton>
+              <LinkButton href="/registro?volver=/negocios/nuevo" variant="outline">Crear cuenta</LinkButton>
+            </> : <LinkButton href="/negocios?seccion=ejemplos">Ver casos ficticios <ArrowRight aria-hidden="true" /></LinkButton>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return <AssessmentEditor key={JSON.stringify([user.uid, editing, requestedField])} uid={user.uid} requestedField={requestedField} editing={editing} />;
 }
 
-function AssessmentEditor({ loading, uid, requestedField, editing }: { loading: boolean; uid?: string; requestedField?: AssessmentField; editing: boolean }) {
+function AssessmentEditor({ uid, requestedField, editing }: { uid: string; requestedField?: AssessmentField; editing: boolean }) {
   const [initial, setInitial] = useState<{ snapshot?: AssessmentSnapshot; restored?: DraftSnapshot }>();
   useEffect(() => {
-    if (loading) return;
     let active = true;
     queueMicrotask(() => {
       if (!active) return;
@@ -54,9 +79,9 @@ function AssessmentEditor({ loading, uid, requestedField, editing }: { loading: 
       else setInitial({ restored: readDraft(uid) ?? undefined });
     });
     return () => { active = false; };
-  }, [loading, editing, uid]);
+  }, [editing, uid]);
 
-  if (loading || !initial) return <div className="container-site page-shell"><p role="status">Cargando evaluación…</p></div>;
+  if (!initial) return <div className="container-site page-shell"><p role="status">Cargando evaluación…</p></div>;
   if (editing && !initial.snapshot) return <div className="container-site page-shell">
     <PageHeading title="Abre una evaluación para editarla" description="Puedes volver a tus evaluaciones o comenzar una nueva." />
     <LinkButton href={diagnosisHref}>Volver a mis evaluaciones</LinkButton>
@@ -64,7 +89,7 @@ function AssessmentEditor({ loading, uid, requestedField, editing }: { loading: 
   return <Wizard uid={uid} previous={initial.snapshot} restored={initial.restored} requestedField={requestedField} />;
 }
 
-function Wizard({ uid, previous, restored, requestedField }: { uid?: string; previous?: AssessmentSnapshot; restored?: DraftSnapshot; requestedField?: AssessmentField }) {
+function Wizard({ uid, previous, restored, requestedField }: { uid: string; previous?: AssessmentSnapshot; restored?: DraftSnapshot; requestedField?: AssessmentField }) {
   const router = useRouter();
   const unfinished = useUnfinishedAssessment();
   const [draft, setDraft] = useState<AssessmentDraft>(() => previous ? fromBusinessContext(previous.context) : restoreAssessmentDraft(restored?.answers));
@@ -281,27 +306,6 @@ function Wizard({ uid, previous, restored, requestedField }: { uid?: string; pre
         </div>;
       })()}
     </div>;
-
-  const { user, loading } = useSession();
-  if (!loading && !user) {
-    return (
-      <div className={styles.background}>
-        <div className={styles.shell}>
-          <div className="mx-auto grid max-w-xl gap-5 py-10 text-center">
-            <PageHeading
-              label="Evaluación guiada"
-              title="Inicia sesión para evaluar tu restaurante"
-              description="Necesitas una cuenta para guardar tu evaluación, consultar tu diagnóstico tributario y seguir tu ruta de formalización."
-            />
-            <div className="flex flex-wrap justify-center gap-3">
-              <LinkButton href="/ingresar?volver=/negocios/nuevo">Iniciar sesión <ArrowRight aria-hidden="true" /></LinkButton>
-              <LinkButton href="/registro?volver=/negocios/nuevo" variant="outline">Crear cuenta</LinkButton>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return <div className={styles.background}>
     <div className={styles.shell}>

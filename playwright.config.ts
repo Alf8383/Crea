@@ -1,10 +1,17 @@
 import { defineConfig, devices } from "@playwright/test";
 
+export const browserProjects = [
+  { name: "escritorio", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+  { name: "tableta", use: { ...devices["Desktop Chrome"], viewport: { width: 820, height: 1180 }, hasTouch: true } },
+  { name: "movil", use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 } } },
+];
+
 const existingServer = process.env.CREA_E2E_URL;
 const baseURL = existingServer || "http://127.0.0.1:3100";
 
 export default defineConfig({
   testDir: "./tests/browser",
+  grepInvert: /@cuenta/,
   outputDir: "test-results/browser",
   fullyParallel: true,
   workers: 2,
@@ -21,9 +28,5 @@ export default defineConfig({
     url: baseURL,
     timeout: 90000,
   },
-  projects: [
-    { name: "escritorio", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
-    { name: "tableta", use: { ...devices["Desktop Chrome"], viewport: { width: 820, height: 1180 }, hasTouch: true } },
-    { name: "movil", use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 } } },
-  ],
+  projects: browserProjects,
 });
