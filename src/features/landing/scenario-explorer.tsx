@@ -182,7 +182,7 @@ export function ScenarioExplorer() {
         ))}
       </Tabs.List>
       {SCENARIOS.map((current) => (
-        <Tabs.Panel key={current.id} value={current.id} keepMounted className="mt-6 grid gap-8 rounded-[28px] border border-[#e5dfd3] bg-white p-6 shadow-[0_24px_60px_-28px_rgba(10,26,60,0.16)] data-hidden:hidden sm:p-9 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-12">
+        <Tabs.Panel key={current.id} value={current.id} className="mt-6 grid gap-8 rounded-[28px] border border-[#e5dfd3] bg-white p-6 shadow-[0_24px_60px_-28px_rgba(10,26,60,0.16)] sm:p-9 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-12">
           {/* Left column: plain-language profile summary */}
           <div className="flex flex-col justify-between border-b border-[#ece6dc] pb-7 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-10">
             <div>

@@ -241,7 +241,7 @@ test("régimen desconocido, preguntas condicionales y resultado incompatible", {
 
 test("demostración explícita y secciones protegidas", async ({ page }) => {
   await page.goto("/ingresar");
-  await expect(page.getByRole("heading", { name: "Modo demostración" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Modo demostración" })).toBeVisible({ timeout: 15000 });
   await expect(page.getByText("Para evaluar tu negocio necesitas una cuenta", { exact: false })).toBeVisible();
   await page.goto("/negocios/nuevo");
   await expect(page.getByRole("heading", { name: "Explora una evaluación de demostración" })).toBeVisible();

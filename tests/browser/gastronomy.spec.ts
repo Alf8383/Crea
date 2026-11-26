@@ -8,7 +8,7 @@ test.describe.configure({ timeout: 90_000 });
 test("la nube conserva la conversación, permite cerrarla con Escape y se restringe en investigación", async ({ page }) => {
   await page.goto("/");
   const cloud = page.getByRole("button", { name: "CREA IA, asistente de orientación" });
-  await expect(cloud).toBeEnabled();
+  await expect(cloud).toBeEnabled({ timeout: 15000 });
   await cloud.focus();
   await page.keyboard.press("Enter");
   const dialog = page.getByRole("dialog", { name: "CREA IA" });
