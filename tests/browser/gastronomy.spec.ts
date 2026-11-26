@@ -17,11 +17,15 @@ test("la nube conserva la conversación, permite cerrarla con Escape y se restri
   await expect(dialog.getByText(/Es el código que identifica/)).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(cloud).toBeFocused();
+  await expect(dialog).toHaveCount(0);
   await page.getByRole("link", { name: "Comenzar ahora", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Explora una evaluación de demostración" })).toBeVisible();
   await cloud.click();
   await expect(dialog.getByText(/Es el código que identifica/)).toBeVisible();
   const accessibility = await new AxeBuilder({ page }).include("#crea-cloud-panel").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(accessibility.violations.map(({ id }) => id)).toEqual([]);
+  await dialog.getByRole("button", { name: "Nueva conversación" }).click();
+  await expect(dialog.getByText(/Es el código que identifica/)).toHaveCount(0);
   await page.goto("/investigacion");
   await cloud.click();
   await expect(dialog.getByText(/La asistencia está deshabilitada/)).toBeVisible();
