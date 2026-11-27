@@ -39,6 +39,8 @@ pnpm dlx firebase-tools emulators:exec --only firestore --project demo-crea "pnp
 
 Para probar Auth y Firestore mediante navegador, inicia ambos emuladores con `--only auth,firestore --project demo-crea`, usa el ID `demo-crea`, un API key ficticio, `NEXT_PUBLIC_CREA_EMULATORS=true` y `NEXT_PUBLIC_CREA_DEMO=false`. Ejecuta `pnpm test:e2e:firebase` con ambos emuladores activos para recorrer registro, persistencia, administración y estudio. La aplicación solo admite conexión a emuladores mediante loopback y un ID que empiece por `demo-`.
 
+Las [pruebas locales de carga y estrés](docs/carga-y-estres.md) miden Hosting y el flujo de evaluaciones autenticadas con Firebase Emulator Suite.
+
 ## Firebase Hosting
 
 `pnpm build` exporta el sitio a `out/`. `firebase.json` conserva el sitio de Firebase Hosting `creaperu`, las URLs limpias, la compatibilidad con enlaces anteriores y la ruta a `firestore.rules`. El cliente usa las variables `NEXT_PUBLIC_*` disponibles al compilar. Al preparar un entorno real, desactiva ambos modos locales, configura los dominios y proveedores de Auth, y publica primero las reglas revisadas en el entorno autorizado. La aplicación exportada se puede previsualizar en el emulador de Hosting.
