@@ -236,18 +236,16 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
               ) : session.mode !== "firebase" ? (
                 <EmptyState title={session.mode === "demo" ? "Modo demostración" : "Cuentas sin conexión"}>
                   {session.mode === "demo"
-                    ? "Esta vista previa usa el modo demostración. Puedes hacer una evaluación sin cuenta y tus respuestas se guardarán en esta pestaña."
-                    : "El acceso a cuentas no está disponible. Puedes evaluar tu restaurante y consultar las guías en esta pestaña."}
-                  {session.mode === "demo" && (
-                    <div className="mt-3">
-                      <Link
-                        className="inline-flex min-h-11 items-center font-bold text-primary underline underline-offset-4"
-                        href="/negocios"
-                      >
-                        Explorar una evaluación de demostración
-                      </Link>
-                    </div>
-                  )}
+                    ? "Explora evaluaciones con datos ficticios. Para evaluar tu negocio necesitas una cuenta en el sitio de CREA."
+                    : "El acceso a cuentas no está disponible en este entorno. Puedes consultar las guías y explorar casos ficticios."}
+                  <div className="mt-3">
+                    <Link
+                      className="inline-flex min-h-11 items-center font-bold text-primary underline underline-offset-4"
+                      href="/negocios?seccion=ejemplos"
+                    >
+                      Ver casos ficticios
+                    </Link>
+                  </div>
                 </EmptyState>
               ) : session.user ? (
                 <div className="grid justify-items-start gap-4 rounded-2xl border border-[#e5dfd3] bg-white p-6">

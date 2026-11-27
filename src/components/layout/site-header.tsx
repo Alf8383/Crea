@@ -11,7 +11,6 @@ import { useActiveAssessment } from "@/features/evaluation/assessment-entry";
 import { Brand } from "./brand";
 
 const pages = [
-  { path: "/", label: "Inicio" },
   { path: "/comparar", label: "Comparar regímenes" },
   { path: "/obligaciones", label: "Consultar obligaciones" },
 ];
@@ -42,10 +41,7 @@ export function SiteHeader() {
       <div className="mx-auto flex max-w-[78rem] flex-wrap items-center justify-between gap-3 rounded-t-[30px] border border-b-[#ebe5da] border-[#e5dfd3] bg-white px-6 py-4 sm:px-10">
         <Brand />
         <nav aria-label="Navegación principal" className="flex items-center gap-2 text-sm font-extrabold text-[#0a1a3c]">
-          <Link href="/" className="inline-flex min-h-11 items-center rounded-full px-4 transition-colors hover:bg-[#f2ede3] hover:text-[#0b4ac9]">Inicio</Link>
-          {authPage && !user ? <Link href={pathname === "/registro" ? "/ingresar" : "/registro"} className="inline-flex min-h-11 items-center rounded-full bg-[#0b4ac9] px-5 text-white shadow-[0_8px_20px_-8px_rgba(11,74,201,0.55)] transition-[transform,background-color] hover:bg-[#0839a0] active:scale-[0.97]">
-            {pathname === "/registro" ? "Iniciar sesión" : "Crear cuenta"}
-          </Link> : <Link href="/negocios" className="inline-flex min-h-11 items-center rounded-full border border-[#d4ccbe] bg-[#faf8f4] px-5 text-[#0a1a3c] transition-colors hover:border-[#0b4ac9] hover:text-[#0b4ac9]">Mi espacio</Link>}
+          <Link href="/negocios" className="inline-flex min-h-11 items-center rounded-full border border-[#d4ccbe] bg-[#faf8f4] px-5 text-[#0a1a3c] transition-colors hover:border-[#0b4ac9] hover:text-[#0b4ac9]">Mi espacio</Link>
         </nav>
       </div>
     </header>
@@ -57,7 +53,6 @@ export function SiteHeader() {
       <div className="mx-auto flex max-w-[1360px] flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3.5 sm:px-10">
         <Brand />
         <nav aria-label="Navegación principal" className="order-last flex w-full flex-wrap items-center gap-x-1 gap-y-0.5 text-sm font-bold text-[#3b4b6b] lg:order-none lg:w-auto lg:gap-2">
-          <a href="#inicio" className="inline-flex min-h-11 items-center rounded-full px-3.5 text-[#0a1a3c] transition-colors hover:bg-[#efeae0] hover:text-[#0b4ac9]">Inicio</a>
           <a href="#escenarios" className="inline-flex min-h-11 items-center rounded-full px-3.5 transition-colors hover:bg-[#efeae0] hover:text-[#0b4ac9]">Escenarios</a>
           <a href="#como-funciona" className="inline-flex min-h-11 items-center rounded-full px-3.5 transition-colors hover:bg-[#efeae0] hover:text-[#0b4ac9]">¿Cómo funciona?</a>
           <a href="#beneficios" className="inline-flex min-h-11 items-center rounded-full px-3.5 transition-colors hover:bg-[#efeae0] hover:text-[#0b4ac9]">Beneficios</a>

@@ -159,7 +159,6 @@ function CloudChat({ context }: { context: Context | null }) {
   const restricted = path === "/investigacion" || path.startsWith("/investigacion/");
   const [open, setOpen] = useState(false);
   const [authorized, setAuthorized] = useState(false);
-  const [threadKey, setThreadKey] = useState(0);
   const close = useRef<HTMLButtonElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
@@ -236,63 +235,63 @@ function CloudChat({ context }: { context: Context | null }) {
   const topics = context?.topics.length ? context.topics : (["ciiu", "sales", "tax"] as const);
 
   return (
-    <MotionConfig reducedMotion="user">
-      <div className="crea-cloud print-hidden">
-        <AnimatePresence>
-          {open && (
-            <motion.section
-              key="crea-cloud-panel"
-              id="crea-cloud-panel"
-              className="crea-cloud-panel"
-              role="dialog"
-              aria-labelledby="crea-cloud-title"
-              initial={{ opacity: 0, y: 12, scale: 0.94 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.95 }}
-              transition={{ type: "spring", duration: 0.36, bounce: 0.15 }}
-            >
-          <header className="crea-cloud-head">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[#ffc400] text-[#081636] shadow-xs">
-                <Sparkles className="size-4" aria-hidden="true" />
-              </span>
-              <div>
-                <h2 id="crea-cloud-title" className="flex items-center gap-1.5">
-                  CREA IA
-                  <span aria-hidden="true" className="inline-block size-1.5 rounded-full bg-[#ffc400]" />
-                </h2>
-                <p>Orientación gastronómica · Cajamarca</p>
+    <AssistantRuntimeProvider runtime={runtime}>
+      <MotionConfig reducedMotion="user">
+        <div className="crea-cloud print-hidden">
+          <AnimatePresence>
+            {open && (
+              <motion.section
+                key="crea-cloud-panel"
+                id="crea-cloud-panel"
+                className="crea-cloud-panel"
+                role="dialog"
+                aria-labelledby="crea-cloud-title"
+                initial={{ opacity: 0, y: 12, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                transition={{ type: "spring", duration: 0.36, bounce: 0.15 }}
+              >
+            <header className="crea-cloud-head">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[#ffc400] text-[#081636] shadow-xs">
+                  <Sparkles className="size-4" aria-hidden="true" />
+                </span>
+                <div>
+                  <h2 id="crea-cloud-title" className="flex items-center gap-1.5">
+                    CREA IA
+                    <span aria-hidden="true" className="inline-block size-1.5 rounded-full bg-[#ffc400]" />
+                  </h2>
+                  <p>Orientación gastronómica · Cajamarca</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label="Nueva conversación"
-                className="rounded-full text-[#cbd5e8] hover:bg-white/12 hover:text-white"
-                onClick={() => setThreadKey((k) => k + 1)}
-              >
-                <Trash2 className="size-4" aria-hidden="true" />
-              </Button>
-              <Button
-                ref={close}
-                size="icon"
-                variant="ghost"
-                aria-label="Cerrar CREA IA"
-                className="rounded-full text-[#cbd5e8] hover:bg-white/12 hover:text-white"
-                onClick={() => setOpen(false)}
-              >
-                <X aria-hidden="true" />
-              </Button>
-            </div>
-          </header>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Nueva conversación"
+                  className="rounded-full text-[#cbd5e8] hover:bg-white/12 hover:text-white"
+                  onClick={() => runtime.thread.reset()}
+                >
+                  <Trash2 className="size-4" aria-hidden="true" />
+                </Button>
+                <Button
+                  ref={close}
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Cerrar CREA IA"
+                  className="rounded-full text-[#cbd5e8] hover:bg-white/12 hover:text-white"
+                  onClick={() => setOpen(false)}
+                >
+                  <X aria-hidden="true" />
+                </Button>
+              </div>
+            </header>
 
-          {restricted ? (
-            <p className="p-5 text-sm leading-relaxed text-[#3b4b6b]">
-              La asistencia está deshabilitada en el módulo de investigación para proteger las respuestas del pretest y el postest.
-            </p>
-          ) : (
-            <AssistantRuntimeProvider key={threadKey} runtime={runtime}>
+            {restricted ? (
+              <p className="p-5 text-sm leading-relaxed text-[#3b4b6b]">
+                La asistencia está deshabilitada en el módulo de investigación para proteger las respuestas del pretest y el postest.
+              </p>
+            ) : (
               <ThreadPrimitive.Root className="flex min-h-0 flex-1 flex-col">
                 <ThreadPrimitive.Viewport className="crea-cloud-log relative flex flex-1 flex-col gap-3 overflow-y-auto p-4">
                   {context && (
@@ -398,29 +397,29 @@ function CloudChat({ context }: { context: Context | null }) {
                   </ComposerPrimitive.Root>
                 </div>
               </ThreadPrimitive.Root>
-            </AssistantRuntimeProvider>
+            )}
+            </motion.section>
           )}
-          </motion.section>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>
 
-      <motion.button
-        ref={button}
-        type="button"
-        disabled={!ready}
-        aria-label="CREA IA, asistente de orientación"
-        aria-expanded={open}
-        aria-controls={open ? "crea-cloud-panel" : undefined}
-        className="crea-cloud-trigger"
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setOpen((value) => !value)}
-      >
-        <span className="crea-cloud-icon" aria-hidden="true">
-          <Sparkles strokeWidth={2.2} />
-        </span>
-        <span className="crea-cloud-label">CREA IA</span>
-      </motion.button>
-      </div>
-    </MotionConfig>
+          <motion.button
+            ref={button}
+            type="button"
+            disabled={!ready}
+            aria-label="CREA IA, asistente de orientación"
+            aria-expanded={open}
+            aria-controls={open ? "crea-cloud-panel" : undefined}
+            className="crea-cloud-trigger"
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setOpen((value) => !value)}
+          >
+            <span className="crea-cloud-icon" aria-hidden="true">
+              <Sparkles strokeWidth={2.2} />
+            </span>
+            <span className="crea-cloud-label">CREA IA</span>
+          </motion.button>
+        </div>
+      </MotionConfig>
+    </AssistantRuntimeProvider>
   );
 }

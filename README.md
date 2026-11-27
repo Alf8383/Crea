@@ -14,7 +14,7 @@ cp .env.example .env.local
 pnpm dev
 ```
 
-Abre [CREA en localhost](http://localhost:3000). El archivo de ejemplo activa el modo demostración de forma explícita. Puedes completar un formulario vacío o abrir un ejemplo identificado desde «Mi espacio». En este modo, las evaluaciones se guardan en la pestaña y el acceso a cuentas, administración e investigación queda deshabilitado. Consulta el [recorrido gastronómico por etapas](docs/gastronomia-por-etapas.md) para revisar la clasificación CIIU, la ruta de formalización y el asistente opcional.
+Abre [CREA en localhost](http://localhost:3000). El archivo de ejemplo activa el modo demostración de forma explícita. Puedes abrir casos ficticios para explorar el diagnóstico, el simulador y la ruta de formalización. La evaluación de un negocio propio requiere iniciar sesión con una cuenta. El acceso a cuentas, administración e investigación se habilita con Firebase. Consulta el [recorrido gastronómico por etapas](docs/gastronomia-por-etapas.md) para revisar la clasificación CIIU, la ruta de formalización y el asistente opcional.
 
 Con un proyecto Firebase de desarrollo, completa las variables web en `.env.local` y cambia `NEXT_PUBLIC_CREA_DEMO` a `false`. Habilita los proveedores correo/contraseña y Google en Firebase Authentication. Las evaluaciones guardadas con una cuenta se conservan en Firestore. Los roles se asignan mediante custom claims de Firebase Admin SDK.
 
@@ -37,7 +37,7 @@ Pruebas de permisos en el emulador local, con Java disponible:
 pnpm dlx firebase-tools emulators:exec --only firestore --project demo-crea "pnpm test:rules"
 ```
 
-Para probar Auth y Firestore mediante navegador, inicia ambos emuladores con `--only auth,firestore --project demo-crea`, usa el ID `demo-crea`, un API key ficticio, `NEXT_PUBLIC_CREA_EMULATORS=true` y `NEXT_PUBLIC_CREA_DEMO=false`. Ejecuta `pnpm test:e2e:firebase` con ambos emuladores activos para recorrer registro, persistencia, administración y estudio. La aplicación solo admite conexión a emuladores mediante loopback y un ID que empiece por `demo-`.
+Para probar Auth y Firestore mediante navegador, inicia ambos emuladores con `--only auth,firestore --project demo-crea`, usa el ID `demo-crea`, un API key ficticio, `NEXT_PUBLIC_CREA_EMULATORS=true` y `NEXT_PUBLIC_CREA_DEMO=false`. Ejecuta `pnpm test:e2e:firebase` con ambos emuladores activos para recorrer el diagnóstico autenticado en escritorio, tableta y móvil, además de registro, persistencia, administración y estudio. La aplicación solo admite conexión a emuladores mediante loopback y un ID que empiece por `demo-`.
 
 ## Firebase Hosting
 
